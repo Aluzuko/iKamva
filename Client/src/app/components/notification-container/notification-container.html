@@ -1,0 +1,31 @@
+<div class="toast-stack" *ngIf="notificationService.toasts().length" aria-live="polite" aria-atomic="true">
+  <div
+    class="toast-card"
+    *ngFor="let toast of notificationService.toasts()"
+    [ngClass]="{
+      'toast-success': toast.type === 'success',
+      'toast-danger': toast.type === 'danger',
+      'toast-warning': toast.type === 'warning',
+      'toast-info': toast.type === 'info'
+    }"
+  >
+    <div class="toast-icon">
+      <i
+        class="bi"
+        [ngClass]="{
+          'bi-info-circle': toast.type === 'info',
+          'bi-check-circle': toast.type === 'success',
+          'bi-exclamation-triangle': toast.type === 'warning',
+          'bi-x-circle': toast.type === 'danger'
+        }"
+      ></i>
+    </div>
+    <div class="toast-body">
+      <div class="toast-title">{{ toast.title }}</div>
+      <div class="toast-message" *ngIf="toast.message">{{ toast.message }}</div>
+    </div>
+    <button type="button" class="toast-close" (click)="dismiss(toast.id)" aria-label="Dismiss notification">
+      <i class="bi bi-x"></i>
+    </button>
+  </div>
+</div>

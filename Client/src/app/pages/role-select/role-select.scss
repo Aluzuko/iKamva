@@ -1,0 +1,113 @@
+.role-select-page {
+  background: var(--tl-bg-subtle);
+}
+
+.brand-mark {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--tl-primary), var(--tl-role-parent));
+  color: #fff;
+  font-size: 1.5rem;
+}
+
+.brand-title {
+  font-weight: 700;
+  font-size: 2rem;
+  color: var(--tl-text-strong);
+}
+
+.lead-select {
+  font-size: 1.15rem;
+  color: var(--tl-text-strong);
+}
+
+.role-grid {
+  max-width: 760px;
+  width: 100%;
+}
+
+.role-card {
+  background: #fff;
+  border-radius: var(--tl-radius-lg);
+  box-shadow: var(--tl-shadow-sm);
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.role-card:hover,
+.role-card:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: var(--tl-shadow-md);
+  outline: none;
+}
+
+.role-card-bar {
+  height: 6px;
+}
+
+.role-card-body {
+  padding: 1.75rem;
+  flex: 1;
+}
+
+.role-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--tl-radius-md);
+  background: var(--tl-bg-subtle);
+  font-size: 1.4rem;
+}
+
+.role-name {
+  font-weight: 700;
+  font-size: 1.35rem;
+  margin-bottom: 0.4rem;
+  color: var(--tl-text-strong);
+}
+
+.role-desc {
+  color: var(--tl-text-muted);
+  margin-bottom: 1.1rem;
+}
+
+.role-cta {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.role-gradient-student .role-card-bar {
+  background: linear-gradient(90deg, var(--tl-role-student), #1e3a8a);
+}
+.role-gradient-student .role-icon,
+.role-gradient-student .role-cta {
+  color: var(--tl-role-student);
+}
+
+.role-gradient-parent .role-card-bar {
+  background: linear-gradient(90deg, var(--tl-role-parent), #14b8a6);
+}
+.role-gradient-parent .role-icon,
+.role-gradient-parent .role-cta {
+  color: var(--tl-role-parent);
+}
+
+.role-gradient-tutor .role-card-bar {
+  background: linear-gradient(90deg, var(--tl-role-tutor), #d97706);
+}
+.role-gradient-tutor .role-icon,
+.role-gradient-tutor .role-cta {
+  color: var(--tl-role-tutor);
+}
+
+.role-gradient-admin .role-card-bar {
+  background: linear-gradient(90deg, var(--tl-role-admin), #be123c);
+}
+.role-gradient-admin .role-icon,
+.role-gradient-admin .role-cta {
+  color: var(--tl-role-admin);
+}

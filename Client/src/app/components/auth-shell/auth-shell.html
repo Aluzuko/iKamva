@@ -1,0 +1,26 @@
+<div class="auth-page d-flex flex-column align-items-center justify-content-center min-vh-100 px-3 py-5" [ngClass]="role ? 'role-' + role : ''">
+  <a routerLink="/role-select" class="brand-link d-flex align-items-center gap-2 text-decoration-none mb-4">
+    <span class="brand-mark-sm d-flex align-items-center justify-content-center rounded-circle">
+      <i class="bi bi-journal-bookmark-fill"></i>
+    </span>
+    <span class="brand-name">Mentivio</span>
+  </a>
+
+  <div class="auth-card">
+    <div class="auth-card-bar" *ngIf="role"></div>
+    <div class="auth-card-body">
+      <span class="role-pill mb-3" *ngIf="roleOption">
+        <i class="bi" [ngClass]="roleOption.icon"></i>
+        {{ roleOption.label }}
+      </span>
+      <h1 class="auth-title mb-1">{{ title }}</h1>
+      <p class="auth-subtitle text-muted mb-4" *ngIf="subtitle">{{ subtitle }}</p>
+
+      <ng-content></ng-content>
+    </div>
+  </div>
+
+  <a routerLink="/" class="text-muted small mt-4 text-decoration-none">
+    <i class="bi bi-arrow-left me-1"></i>Back to role selection
+  </a>
+</div>

@@ -1,0 +1,36 @@
+<aside class="app-sidebar" [class.collapsed]="collapsed">
+  <div class="sidebar-brand">
+    <a routerLink="/" class="d-flex align-items-center gap-2 text-decoration-none">
+      <span class="brand-icon"><i class="bi bi-journal-bookmark-fill"></i></span>
+      <span class="brand-text" *ngIf="!collapsed">Mentivio</span>
+    </a>
+  </div>
+
+  <div class="sidebar-role" *ngIf="!collapsed && roleOption">
+    <span class="role-pill">
+      <i class="bi" [ngClass]="roleOption.icon"></i>
+      {{ roleOption.label }}
+    </span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a
+      *ngFor="let item of navItems"
+      [routerLink]="[item.route]"
+      routerLinkActive="active"
+      class="nav-link-item"
+      [title]="item.label"
+    >
+      <i class="bi" [ngClass]="item.icon"></i>
+      <span class="nav-label" *ngIf="!collapsed">{{ item.label }}</span>
+      <span class="nav-badge" *ngIf="!collapsed && item.badge">{{ item.badge }}</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a routerLink="/role-select" class="nav-link-item" title="Switch Role">
+      <i class="bi bi-box-arrow-left"></i>
+      <span class="nav-label" *ngIf="!collapsed">Switch Role</span>
+    </a>
+  </div>
+</aside>

@@ -1,0 +1,110 @@
+.app-sidebar {
+  width: 260px;
+  background: var(--tl-primary-dark);
+  color: #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  transition: width 0.2s ease;
+  z-index: 1030;
+}
+.app-sidebar.collapsed {
+  width: 76px;
+}
+
+.sidebar-brand {
+  padding: 1.25rem 1.25rem 1rem;
+}
+.brand-icon {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--tl-radius-md);
+  background: var(--tl-role-color, var(--tl-accent));
+  color: #fff;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.brand-text {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+.sidebar-role {
+  padding: 0 1.25rem 1rem;
+}
+.role-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  overflow-y: auto;
+}
+
+.nav-link-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--tl-radius-md);
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 0.925rem;
+  margin-bottom: 0.15rem;
+  border-left: 3px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.nav-link-item i {
+  font-size: 1.05rem;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.nav-link-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+.nav-link-item.active {
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+  border-left-color: var(--tl-role-color, var(--tl-accent));
+  font-weight: 600;
+}
+
+.nav-badge {
+  margin-left: auto;
+  background: var(--tl-accent);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+}
+
+.sidebar-footer {
+  padding: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 991.98px) {
+  .app-sidebar {
+    position: fixed;
+    height: 100vh;
+  }
+}
