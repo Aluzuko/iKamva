@@ -1,0 +1,24 @@
+.lesson-row {
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--tl-border);
+}
+.lesson-row:last-child {
+  border-bottom: none;
+}
+
+.lesson-subject {
+  font-weight: 600;
+  color: var(--tl-text-strong);
+  font-size: 0.9rem;
+}
+
+.lesson-meta {
+  font-size: 0.8rem;
+  color: var(--tl-text-muted);
+  margin-top: 0.1rem;
+}
+
+.lesson-price {
+  font-weight: 600;
+  color: var(--tl-text-strong);
+}

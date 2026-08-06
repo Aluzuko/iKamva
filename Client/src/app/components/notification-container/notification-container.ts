@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { NotificationService } from '../../services/notification.service';
 
 @Component({
@@ -9,10 +9,23 @@ import { NotificationService } from '../../services/notification.service';
   templateUrl: './notification-container.html',
   styleUrl: './notification-container.scss',
 })
-export class NotificationContainerComponent {
-  readonly notificationService = inject(NotificationService);
+export class NotificationContainer {
+  constructor(public readonly notificationService: NotificationService) {}
+
+  iconFor(type: 'info' | 'success' | 'warning' | 'danger'): string {
+    switch (type) {
+      case 'success':
+        return 'bi-check-circle';
+      case 'warning':
+        return 'bi-exclamation-triangle';
+      case 'danger':
+        return 'bi-x-circle';
+      default:
+        return 'bi-info-circle';
+    }
+  }
 
   dismiss(id: string): void {
-    this.notificationService.dismiss(id);
+    this.notificationService.markAsRead(id);
   }
 }

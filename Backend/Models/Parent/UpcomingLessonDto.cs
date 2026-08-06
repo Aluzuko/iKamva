@@ -1,0 +1,11 @@
+namespace Backend.Models.Parent;
+
+public sealed class UpcomingLessonDto
+{
+    public required Guid BookingId { get; init; }
+    public required string SubjectName { get; init; }
+    public required string StudentName { get; init; }
+    public required string TutorName { get; init; }
+    public required DateTime ScheduledAt { get; init; }
+    public required decimal Price { get; init; }
+}

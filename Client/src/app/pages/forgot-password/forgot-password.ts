@@ -13,7 +13,7 @@ import { UserRole } from '../../models/user-role.model';
   styleUrl: './forgot-password.scss',
 })
 export class ForgotPassword implements OnInit {
-
+  /** Optional — only present if the user arrived from a role-specific login page. */
   role: UserRole | null = null;
   readonly submitted = signal(false);
   readonly form: FormGroup;

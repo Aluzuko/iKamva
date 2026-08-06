@@ -11,13 +11,6 @@ export interface AppNotification {
   type: NotificationType;
 }
 
-export interface AppToast {
-  id: string;
-  title: string;
-  message?: string;
-  type: NotificationType;
-}
-
 /**
  * Mock notification store shared across all roles. Replace the seed data
  * with a real API call (e.g. GET /api/notifications) when the backend
@@ -52,10 +45,7 @@ export class NotificationService {
     },
   ]);
 
-  private readonly _toasts = signal<AppToast[]>([]);
-
   readonly notifications = this._notifications.asReadonly();
-  readonly toasts = this._toasts.asReadonly();
   readonly unreadCount = computed(
     () => this._notifications().filter((n) => !n.read).length
   );
@@ -68,34 +58,5 @@ export class NotificationService {
 
   markAllAsRead(): void {
     this._notifications.update((list) => list.map((n) => ({ ...n, read: true })));
-  }
-
-  showToast(title: string, message: string | undefined, type: NotificationType, duration = 4000): void {
-    const toast: AppToast = { id: crypto.randomUUID(), title, message, type };
-    this._toasts.update((list) => [...list, toast]);
-
-    if (duration > 0) {
-      window.setTimeout(() => this.dismiss(toast.id), duration);
-    }
-  }
-
-  showSuccess(title: string, message?: string, duration = 4000): void {
-    this.showToast(title, message, 'success', duration);
-  }
-
-  showError(title: string, message?: string, duration = 4000): void {
-    this.showToast(title, message, 'danger', duration);
-  }
-
-  showWarning(title: string, message?: string, duration = 4000): void {
-    this.showToast(title, message, 'warning', duration);
-  }
-
-  showInfo(title: string, message?: string, duration = 4000): void {
-    this.showToast(title, message, 'info', duration);
-  }
-
-  dismiss(id: string): void {
-    this._toasts.update((list) => list.filter((toast) => toast.id !== id));
   }
 }

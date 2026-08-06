@@ -12,7 +12,6 @@ import { ROLE_OPTIONS, UserRole } from '../../models/user-role.model';
 })
 export class RoleSelect {
   readonly roles = ROLE_OPTIONS;
-  readonly currentYear = new Date().getFullYear();
 
   constructor(private readonly router: Router) {}
 

@@ -1,0 +1,18 @@
+<h1 class="page-title">My Children</h1>
+<p class="page-subtitle mb-4">View and manage each linked student</p>
+
+<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
+
+<div *ngIf="!loading()">
+  <div class="row g-3" *ngIf="children().length; else empty">
+    <div class="col-12 col-md-6 col-xl-4" *ngFor="let child of children()">
+      <app-child-summary-card [child]="child"></app-child-summary-card>
+    </div>
+  </div>
+  <ng-template #empty>
+    <div class="panel text-center py-5">
+      <i class="bi bi-people fs-1 text-muted"></i>
+      <p class="text-muted mt-2 mb-0">No children linked yet.</p>
+    </div>
+  </ng-template>
+</div>

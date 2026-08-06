@@ -1,0 +1,63 @@
+<h1 class="page-title">Link a Student</h1>
+<p class="page-subtitle mb-4">Connect your child's account to your family profile</p>
+
+<div class="link-card">
+  <div class="tab-switch mb-4">
+    <button type="button" class="tab-btn" [class.active]="activeTab() === 'invite'" (click)="setTab('invite')">
+      <i class="bi bi-envelope me-1"></i>Invite by Email
+    </button>
+    <button type="button" class="tab-btn" [class.active]="activeTab() === 'code'" (click)="setTab('code')">
+      <i class="bi bi-link-45deg me-1"></i>Link by Code
+    </button>
+  </div>
+
+  <div class="auth-alert-success mb-3" *ngIf="submitted()">
+    <i class="bi bi-check-circle me-1"></i>
+    {{ activeTab() === 'invite' ? 'Invitation sent.' : 'Student linked to your account.' }}
+  </div>
+
+  <form *ngIf="activeTab() === 'invite'" [formGroup]="inviteForm" (ngSubmit)="submitInvite()" novalidate>
+    <p class="text-muted small mb-3">
+      Enter your child's email address. They'll receive an invitation to link their Mentivio account to your
+      family profile.
+    </p>
+
+    <div class="mb-3">
+      <label class="auth-form-label">Student Email Address</label>
+      <input type="email" class="form-control" formControlName="email" placeholder="student@email.com" />
+    </div>
+
+    <div class="mb-4">
+      <label class="auth-form-label">Relationship</label>
+      <select class="form-select" formControlName="relationship">
+        <option value="parent">Parent / Guardian</option>
+        <option value="guardian">Guardian</option>
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary-role w-100" [disabled]="submitting()">Send Invitation</button>
+  </form>
+
+  <form *ngIf="activeTab() === 'code'" [formGroup]="codeForm" (ngSubmit)="submitCode()" novalidate>
+    <p class="text-muted small mb-3">
+      Ask your child for their student link code (found on their profile page) and enter it below.
+    </p>
+
+    <div class="mb-4">
+      <label class="auth-form-label">Student Link Code</label>
+      <input type="text" class="form-control text-uppercase" formControlName="code" placeholder="ALEX2026" />
+    </div>
+
+    <button type="submit" class="btn btn-primary-role w-100" [disabled]="submitting()">Link Student</button>
+  </form>
+</div>
+
+<div class="panel mt-3">
+  <div class="detail-label mb-2">What you'll be able to do:</div>
+  <ul class="benefits-list">
+    <li><i class="bi bi-check-circle-fill me-2"></i>View your child's upcoming and past lessons</li>
+    <li><i class="bi bi-check-circle-fill me-2"></i>Watch lesson recordings and read tutor notes</li>
+    <li><i class="bi bi-check-circle-fill me-2"></i>Make payments on behalf of your child</li>
+    <li><i class="bi bi-check-circle-fill me-2"></i>Receive notifications about lesson updates</li>
+  </ul>
+</div>

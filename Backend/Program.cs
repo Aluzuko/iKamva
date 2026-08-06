@@ -12,60 +12,25 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-static string? NormalizeConnectionString(string? value)
-{
-    if (string.IsNullOrWhiteSpace(value))
-    {
-        return null;
-    }
-
-    var trimmed = value.Trim();
-    if (trimmed.StartsWith("<", StringComparison.Ordinal)
-        && trimmed.EndsWith(">", StringComparison.Ordinal)
-        && trimmed.Contains("connection string", StringComparison.OrdinalIgnoreCase))
-    {
-        return null;
-    }
-
-    var placeholderPatterns = new[]
-    {
-        "your supabase postgres connection string",
-        "your postgres connection string",
-        "your connection string",
-        "<your supabase postgres connection string>",
-        "<your postgres connection string>",
-        "<your connection string>"
-    };
-
-    if (placeholderPatterns.Any(pattern => trimmed.Equals(pattern, StringComparison.OrdinalIgnoreCase)))
-    {
-        return null;
-    }
-
-    return trimmed;
-}
-
-var connectionString = new[]
-    {
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        builder.Configuration["Supabase:ConnectionString"],
-        builder.Configuration["SUPABASE_CONNECTION_STRING"],
-        builder.Configuration["ConnectionStrings__DefaultConnection"],
-    }
-    .Select(NormalizeConnectionString)
-    .FirstOrDefault(s => !string.IsNullOrWhiteSpace(s));
+// ---------------------------------------------------------------------------
+// Database (Supabase Postgres, via connection string from config/env)
+// ---------------------------------------------------------------------------
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? builder.Configuration["Supabase:ConnectionString"]
+    ?? builder.Configuration["SUPABASE_CONNECTION_STRING"]
+    ?? builder.Configuration["ConnectionStrings__DefaultConnection"];
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException(
-        "No database connection string configured. Set ConnectionStrings:DefaultConnection or SUPABASE_CONNECTION_STRING with a valid Supabase Postgres connection string.");
+        "No database connection string configured. Set ConnectionStrings:DefaultConnection or SUPABASE_CONNECTION_STRING.");
 }
-
-Console.WriteLine($"[DEBUG] connectionString resolved, length={connectionString.Length}");
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
+// ---------------------------------------------------------------------------
+// JWT auth
+// ---------------------------------------------------------------------------
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
@@ -95,9 +60,14 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+// ---------------------------------------------------------------------------
+// App services
+// ---------------------------------------------------------------------------
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IUserSessionService, UserSessionService>();
+builder.Services.AddScoped<Backend.Infrastructure.Email.IEmailSender, Backend.Infrastructure.Email.LoggingEmailSender>();
+builder.Services.AddScoped<Backend.Infrastructure.Parents.IParentService, Backend.Infrastructure.Parents.ParentService>();
 
 builder.Services.AddCors(options =>
 {
@@ -114,10 +84,19 @@ builder.Services
     .AddControllers()
     .AddJsonOptions(options =>
     {
+        // Enum values (e.g. UserRole) serialize/deserialize as "student", "parent", etc.
+        // — matching the Angular UserRole enum exactly, so no casing translation is needed.
         options.JsonSerializerOptions.Converters.Add(
             new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
     });
 
+// ---------------------------------------------------------------------------
+// OpenAPI — native ASP.NET Core generation (Microsoft.AspNetCore.OpenApi),
+// with Swashbuckle used only for the Swagger UI viewer, not document
+// generation. Swashbuckle's own AddSwaggerGen()/OpenApiReference APIs are
+// NOT used here — Microsoft.OpenApi v2 (pulled in by Swashbuckle 10.x on
+// .NET 10) removed the old Reference-based security scheme API entirely.
+// ---------------------------------------------------------------------------
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
@@ -129,7 +108,7 @@ app.UseCors("AllowClient");
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi(); // serves /openapi/v1.json
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/openapi/v1.json", "Backend API v1");
@@ -137,6 +116,11 @@ if (app.Environment.IsDevelopment())
 
     var clientUrl = app.Configuration["ClientUrl"] ?? "http://localhost:5173";
     app.MapGet("/", () => Results.Redirect(clientUrl));
+
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+    await Backend.Infrastructure.Data.DevDataSeeder.SeedAsync(db, hasher);
 }
 
 app.UseHttpsRedirection();
@@ -145,7 +129,16 @@ app.UseAuthorization();
 app.MapControllers();
 app.Run();
 
-
+/// <summary>
+/// Registers the Bearer scheme in the generated OpenAPI document so Swagger UI
+/// shows an "Authorize" option. Paste an access token from /api/auth/login there.
+/// Note: this declares the scheme at the document level; if you also want the
+/// padlock icon on individual protected endpoints, that requires an operation
+/// transformer too — left out here since Microsoft.OpenApi's per-operation
+/// security-requirement API is still shifting release to release. Test
+/// protected endpoints via a manual "Authorization: Bearer <token>" header
+/// in Swagger UI's request editor, curl, or Postman in the meantime.
+/// </summary>
 internal sealed class BearerSecuritySchemeTransformer(IAuthenticationSchemeProvider authenticationSchemeProvider)
     : IOpenApiDocumentTransformer
 {

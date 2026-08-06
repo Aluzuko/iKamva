@@ -1,0 +1,27 @@
+.history-row {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--tl-border);
+}
+.history-row:last-child {
+  border-bottom: none;
+}
+
+.history-title {
+  font-weight: 600;
+  color: var(--tl-text-strong);
+  font-size: 0.9rem;
+}
+
+.history-meta {
+  font-size: 0.8rem;
+  color: var(--tl-text-muted);
+  margin-top: 0.15rem;
+}
+
+.history-note {
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--tl-text-muted);
+  margin: 0.4rem 0 0;
+  max-width: 460px;
+}

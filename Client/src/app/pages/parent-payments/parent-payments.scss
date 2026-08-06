@@ -1,0 +1,15 @@
+:host {
+  display: block;
+}
+
+.payment-table th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tl-text-muted);
+  font-weight: 600;
+  border-bottom-width: 1px;
+}
+.payment-table td {
+  font-size: 0.9rem;
+}

@@ -1,13 +1,18 @@
 import { NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { AppRoutingModule } from './app.routes';
+import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
+import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
-import { NotificationContainerComponent } from './components/notification-container/notification-container';
+import { AuthInterceptor } from './interceptors/auth.interceptor';
+import { NotificationContainer } from './components/notification-container/notification-container';
 
 @NgModule({
   declarations: [App],
-  imports: [BrowserModule, AppRoutingModule, NotificationContainerComponent],
-  providers: [provideBrowserGlobalErrorListeners()],
+  imports: [BrowserModule, HttpClientModule, AppRoutingModule, NotificationContainer],
+  providers: [
+    provideBrowserGlobalErrorListeners(),
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
+  ],
   bootstrap: [App],
 })
 export class AppModule {}

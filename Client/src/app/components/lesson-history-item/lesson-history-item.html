@@ -1,0 +1,21 @@
+<div class="history-row d-flex align-items-start justify-content-between">
+  <div class="d-flex align-items-start gap-3">
+    <app-avatar [name]="item.tutorName" size="sm"></app-avatar>
+    <div>
+      <div class="history-title">
+        {{ item.subjectName }}
+        <span class="text-muted fw-normal">with {{ item.tutorName }}</span>
+      </div>
+      <div class="history-meta">
+        {{ item.scheduledAt | date: 'MMM d, y · h:mm a' }} · {{ item.durationMinutes }} min
+      </div>
+      <p class="history-note" *ngIf="item.notes">"{{ item.notes }}"</p>
+    </div>
+  </div>
+  <div class="d-flex align-items-center gap-2 flex-shrink-0">
+    <app-status-badge [text]="statusLabel" [variant]="statusVariant"></app-status-badge>
+    <button type="button" class="btn btn-link btn-sm p-0" *ngIf="item.recordingUrl">
+      <i class="bi bi-play-circle me-1"></i>Watch
+    </button>
+  </div>
+</div>

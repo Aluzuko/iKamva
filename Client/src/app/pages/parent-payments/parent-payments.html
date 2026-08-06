@@ -1,0 +1,81 @@
+<h1 class="page-title">Payment Management</h1>
+<p class="page-subtitle mb-4">Pay on behalf of your children</p>
+
+<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
+
+<div *ngIf="!loading() && overview() as data">
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-6" *ngFor="let child of data.children">
+      <div class="panel d-flex justify-content-between align-items-center h-100">
+        <div class="d-flex align-items-center gap-3">
+          <app-avatar [name]="child.studentName" size="md"></app-avatar>
+          <div>
+            <div class="fw-bold">{{ child.studentName }}</div>
+            <div class="text-muted small">This month</div>
+            <div class="fw-bold fs-5">${{ child.thisMonthAmount }}</div>
+          </div>
+        </div>
+        <div class="text-end">
+          <div class="text-muted small mb-1">Status</div>
+          <app-status-badge
+            [text]="child.status === 'pending' ? 'Payment Due' : 'Paid'"
+            [variant]="child.status === 'pending' ? 'warning' : 'success'"
+          ></app-status-badge>
+          <div class="mt-2" *ngIf="child.pendingInvoiceId">
+            <button type="button" class="btn btn-primary-role btn-sm" (click)="pay(child.pendingInvoiceId)">
+              Pay ${{ child.thisMonthAmount }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 class="section-title">Payment History</h2>
+    <div class="table-responsive" *ngIf="data.history.length; else noHistory">
+      <table class="table payment-table align-middle">
+        <thead>
+          <tr>
+            <th>Invoice</th>
+            <th>Student</th>
+            <th>Period</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let invoice of data.history">
+            <td class="text-muted">INV-{{ invoice.invoiceId.slice(0, 8) }}</td>
+            <td>{{ invoice.studentName }}</td>
+            <td>{{ invoice.periodDescription }}</td>
+            <td class="fw-semibold">${{ invoice.amount }}</td>
+            <td>
+              <app-status-badge
+                [text]="invoice.status === 'pending' ? 'Pending' : 'Paid'"
+                [variant]="invoice.status === 'pending' ? 'warning' : 'success'"
+              ></app-status-badge>
+            </td>
+            <td class="text-end">
+              <button
+                type="button"
+                class="btn btn-primary-role btn-sm"
+                *ngIf="invoice.status === 'pending'"
+                (click)="pay(invoice.invoiceId)"
+              >
+                Pay
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" *ngIf="invoice.status === 'paid'">
+                PDF
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #noHistory>
+      <p class="text-muted mb-0">No invoices yet.</p>
+    </ng-template>
+  </div>
+</div>
