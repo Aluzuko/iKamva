@@ -19,30 +19,31 @@ export interface AppNotification {
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
   private readonly _notifications = signal<AppNotification[]>([
-    {
-      id: '1',
-      title: 'Lesson reminder',
-      message: 'Algebra II with Sarah Chen starts in 30 minutes',
-      time: '30m ago',
-      read: false,
-      type: 'info',
-    },
-    {
-      id: '2',
-      title: 'Payment received',
-      message: 'Invoice #INV-1042 has been paid',
-      time: '2h ago',
-      read: false,
-      type: 'success',
-    },
-    {
-      id: '3',
-      title: 'Document expiring',
-      message: 'Your background check expires in 14 days',
-      time: '1d ago',
-      read: true,
-      type: 'warning',
-    },
+    // {
+    //   id: '1',
+    //   title: 'Lesson reminder',
+    //   message: 'Algebra II with Sarah Chen starts in 30 minutes',
+    //   time: '30m ago',
+    //   read: false,
+    //   type: 'info',
+    // },
+    // {
+    //   id: '2',
+    //   title: 'Payment received',
+    //   message: 'Invoice #INV-1042 has been paid',
+    //   time: '2h ago',
+    //   read: false,
+    //   type: 'success',
+    // },
+    // {
+    //   id: '3',
+    //   title: 'Document expiring',
+    //   message: 'Your background check expires in 14 days',
+    //   time: '1d ago',
+    //   read: true,
+    //   type: 'warning',
+    // },
+  
   ]);
 
   readonly notifications = this._notifications.asReadonly();
