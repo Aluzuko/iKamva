@@ -1,11 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthShell } from '../../components/auth-shell/auth-shell';
 import { ROLE_OPTIONS, UserRole } from '../../models/user-role.model';
-import { Api } from '../../services/api';
-import { NotificationService } from '../../services/notification.service';
+import { AuthApiService } from '../../services/auth-api.service';
 
 @Component({
   selector: 'app-login',
@@ -18,13 +17,14 @@ export class Login implements OnInit {
   role: UserRole = UserRole.Student;
   justRegistered = false;
   readonly form: FormGroup;
+  readonly submitting = signal(false);
+  readonly errorMessage = signal<string | null>(null);
 
   constructor(
     private readonly fb: FormBuilder,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
-    private readonly api: Api,
-    private readonly notifications: NotificationService
+    private readonly authApi: AuthApiService
   ) {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -57,27 +57,24 @@ export class Login implements OnInit {
       return;
     }
 
-    this.api.post('/api/auth/login', this.form.value).subscribe({
-      next: (result: any) => {
-        debugger;
-        console.log('Login successful:', result);
-        if (result && !result?.status) {
-          this.notifications.showSuccess('Signed in successfully', 'Welcome back.');
-          this.router.navigate(['/', this.role, 'dashboard']);
-        }
+    this.submitting.set(true);
+    this.errorMessage.set(null);
+    const { email, password } = this.form.getRawValue();
+
+    this.authApi.login({ email, password }).subscribe({
+      next: (response) => {
+        this.submitting.set(false);
+        this.router.navigate(['/', response.user.role, 'dashboard']);
       },
-      error: (err) => {
-        const message = err?.error?.message || 'Please check your email and password and try again.';
-        this.notifications.showError('Sign-in failed', message);
-        console.error('Login failed:', err);
+      error: () => {
+        this.submitting.set(false);
+        this.errorMessage.set('Invalid email or password.');
       },
     });
-  
   }
 
   continueWith(provider: 'google' | 'facebook'): void {
     // TODO: wire up real OAuth (Google/Facebook) once backend supports it.
-    // For now this mirrors a successful social sign-in for prototype purposes.
     this.router.navigate(['/', this.role, 'dashboard']);
   }
 }

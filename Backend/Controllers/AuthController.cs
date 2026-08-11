@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Backend.Domain.Entities;
+using Backend.Domain.Enums;
 using Backend.Infrastructure.Auth;
 using Backend.Infrastructure.Data;
 using Backend.Models.Auth;
@@ -53,6 +54,29 @@ public class AuthController : ControllerBase
         _db.Users.Add(user);
         await _db.SaveChangesAsync(ct);
 
+        if (user.Role == UserRole.Student)
+        {
+            _db.StudentProfiles.Add(new StudentProfile
+            {
+                UserId = user.Id,
+                LinkCode = GenerateLinkCode(),
+            });
+
+            var pendingInvites = await _db.ParentStudentLinks
+                .Where(l => l.InviteEmail == email && l.StudentUserId == null)
+                .ToListAsync(ct);
+
+            foreach (var invite in pendingInvites)
+            {
+                invite.StudentUserId = user.Id;
+                invite.Status = LinkStatus.Active;
+                invite.AcceptedAt = DateTime.UtcNow;
+                invite.InviteEmail = null;
+            }
+
+            await _db.SaveChangesAsync(ct);
+        }
+
         return await IssueAuthResponseAsync(user, ct);
     }
 
@@ -64,11 +88,7 @@ public class AuthController : ControllerBase
 
         if (user is null || !_passwordHasher.Verify(request.Password, user.PasswordHash))
         {
-            return Unauthorized(new {status = 401,  message = "Invalid email or password." });
-        }
-        if (user.IsEmailVerified == false)
-        {
-            return Unauthorized(new {status = 401, message = "Email not verified, Please check your email for a verification link." });
+            return Unauthorized(new { message = "Invalid email or password." });
         }
 
         return await IssueAuthResponseAsync(user, ct);
@@ -148,6 +168,19 @@ public class AuthController : ControllerBase
             RefreshTokenExpiresAt = session.ExpiresAt,
             User = UserSummary.FromEntity(user),
         });
+    }
+
+    private static string GenerateLinkCode()
+    {
+        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        var random = System.Security.Cryptography.RandomNumberGenerator.GetBytes(8);
+        var code = new char[8];
+        for (var i = 0; i < code.Length; i++)
+        {
+            code[i] = chars[random[i] % chars.Length];
+        }
+
+        return new string(code);
     }
 
     private Guid GetCurrentUserId()

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -12,8 +12,7 @@ import {
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthShell } from '../../components/auth-shell/auth-shell';
 import { ROLE_OPTIONS, UserRole } from '../../models/user-role.model';
-import { Api } from '../../services/api';
-import { NotificationService } from '../../services/notification.service';
+import { AuthApiService } from '../../services/auth-api.service';
 
 function passwordsMatchValidator(): ValidatorFn {
   return (group: AbstractControl): ValidationErrors | null => {
@@ -35,13 +34,14 @@ function passwordsMatchValidator(): ValidatorFn {
 export class Register implements OnInit {
   role: UserRole = UserRole.Student;
   readonly form: FormGroup;
+  readonly submitting = signal(false);
+  readonly errorMessage = signal<string | null>(null);
 
   constructor(
     private readonly fb: FormBuilder,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
-    private readonly api: Api,
-    private readonly notifications: NotificationService
+    private readonly authApi: AuthApiService
   ) {
     this.form = this.fb.group(
       {
@@ -49,7 +49,6 @@ export class Register implements OnInit {
         email: ['', [Validators.required, Validators.email]],
         password: ['', [Validators.required, Validators.minLength(6)]],
         confirmPassword: ['', [Validators.required]],
-        role: [this.role, [Validators.required]]
       },
       { validators: passwordsMatchValidator() }
     );
@@ -79,17 +78,21 @@ export class Register implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    this.api.post('/api/auth/register', this.form.value).subscribe({
-      next: (result: any) => {
-        if (result) {
-          this.notifications.showSuccess('Account created', 'Your account is ready. Please sign in to continue.');
-          this.router.navigate(['/login', this.role], { queryParams: { registered: '1' } });
-        }
+
+    this.submitting.set(true);
+    this.errorMessage.set(null);
+    const { fullName, email, password } = this.form.getRawValue();
+
+    this.authApi.register({ fullName, email, password, role: this.role }).subscribe({
+      next: () => {
+        this.submitting.set(false);
+        this.router.navigate(['/login', this.role], { queryParams: { registered: '1' } });
       },
       error: (err) => {
-        const message = err?.error?.message || 'We could not create your account right now.';
-        this.notifications.showError('Registration failed', message);
-        console.error('Registration failed:', err);
+        this.submitting.set(false);
+        this.errorMessage.set(
+          err.status === 409 ? 'An account with this email already exists.' : 'Something went wrong. Try again.'
+        );
       },
     });
   }

@@ -1,0 +1,11 @@
+<div class="stat-card">
+  <div class="stat-top">
+    <span class="stat-label">{{ label }}</span>
+    <span class="stat-icon" *ngIf="icon"><i class="bi" [ngClass]="icon"></i></span>
+  </div>
+  <div class="stat-value">{{ value }}</div>
+  <div class="stat-trend" *ngIf="trend" [class.positive]="trendPositive" [class.negative]="!trendPositive">
+    <i class="bi" [ngClass]="trendPositive ? 'bi-arrow-up' : 'bi-arrow-down'"></i>
+    {{ trend.percent >= 0 ? '+' : '' }}{{ trend.percent }}% {{ trend.label }}
+  </div>
+</div>

@@ -1,3 +1,6 @@
+// ---------------------------------------------------------------------------
+// Bootstrap variable overrides (must come BEFORE the bootstrap import)
+// ---------------------------------------------------------------------------
 $primary: #1b4b73; // deep academic blue
 $secondary: #64748b;
 $success: #16a34a;
@@ -11,6 +14,12 @@ $border-radius: 0.5rem;
 $border-radius-lg: 0.75rem;
 $border-radius-sm: 0.375rem;
 
+@import 'bootstrap/scss/bootstrap';
+@import 'bootstrap-icons/font/bootstrap-icons.css';
+
+// ---------------------------------------------------------------------------
+// Mentivio design tokens — CSS custom properties used across components
+// ---------------------------------------------------------------------------
 :root {
   // Brand
   --tl-primary: #1b4b73;
@@ -37,6 +46,10 @@ $border-radius-sm: 0.375rem;
   --tl-shadow-md: 0 8px 24px rgba(15, 23, 42, 0.1);
 }
 
+// Sets --tl-role-color for whichever role shell/page is currently active so
+// child components (sidebar active link, avatar, brand icon, auth card bar,
+// submit buttons, etc.) can theme themselves with
+// `var(--tl-role-color, var(--tl-primary))`.
 .role-student {
   --tl-role-color: var(--tl-role-student);
 }
@@ -61,6 +74,9 @@ body {
   margin: 0;
 }
 
+// ---------------------------------------------------------------------------
+// Shared auth form styling — used by Login, Register, Forgot Password
+// ---------------------------------------------------------------------------
 .auth-form-label {
   font-size: 0.85rem;
   font-weight: 600;
@@ -130,4 +146,65 @@ body {
   border-radius: var(--tl-radius-md);
   padding: 0.65rem 0.9rem;
   font-size: 0.85rem;
+}
+
+// ---------------------------------------------------------------------------
+// Shared dashboard page classes — used across role dashboards
+// ---------------------------------------------------------------------------
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--tl-text-strong);
+  margin-bottom: 0.15rem;
+}
+
+.page-subtitle {
+  font-size: 0.9rem;
+  color: var(--tl-text-muted);
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--tl-text-strong);
+  margin-bottom: 1rem;
+}
+
+.panel {
+  background: #fff;
+  border-radius: var(--tl-radius-lg);
+  box-shadow: var(--tl-shadow-sm);
+  padding: 1.5rem;
+}
+
+.btn-primary-role {
+  background: var(--tl-role-color, var(--tl-primary));
+  border-color: var(--tl-role-color, var(--tl-primary));
+  color: #fff;
+  font-weight: 600;
+  border-radius: var(--tl-radius-md);
+  padding: 0.5rem 1.1rem;
+}
+.btn-primary-role:hover,
+.btn-primary-role:focus {
+  filter: brightness(0.92);
+  color: #fff;
+}
+
+.outstanding-panel {
+  border-left: 4px solid var(--tl-accent);
+}
+.outstanding-title {
+  font-weight: 700;
+  color: var(--tl-text-strong);
+}
+.outstanding-meta {
+  font-size: 0.85rem;
+  color: var(--tl-text-muted);
+}
+.outstanding-amount {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--tl-text-strong);
 }

@@ -1,0 +1,42 @@
+.child-card {
+  background: #fff;
+  border-radius: var(--tl-radius-lg);
+  box-shadow: var(--tl-shadow-sm);
+  padding: 1.5rem;
+  height: 100%;
+}
+
+.child-name {
+  font-weight: 700;
+  color: var(--tl-text-strong);
+}
+
+.child-year {
+  font-size: 0.82rem;
+  color: var(--tl-text-muted);
+}
+
+.mini-stat {
+  background: var(--tl-bg-subtle);
+  border-radius: var(--tl-radius-md);
+  padding: 0.6rem 1rem;
+  flex: 1;
+}
+
+.mini-stat-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--tl-text-strong);
+}
+
+.mini-stat-label {
+  font-size: 0.72rem;
+  color: var(--tl-text-muted);
+}
+
+.view-details {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--tl-role-color, var(--tl-primary));
+  text-decoration: none;
+}

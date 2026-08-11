@@ -1,0 +1,74 @@
+<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
+
+<div *ngIf="!loading() && student() as data">
+  <div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+      <h1 class="page-title">{{ data.fullName }}</h1>
+      <p class="page-subtitle">
+        {{ data.yearLevel }} · {{ data.enrolledSubjects.join(', ') }}
+      </p>
+    </div>
+    <a routerLink="/parent/children" class="btn btn-link text-decoration-none">
+      <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <app-stat-card label="Upcoming" [value]="data.upcomingCount.toString()"></app-stat-card>
+    </div>
+    <div class="col-6 col-lg-3">
+      <app-stat-card label="Completed" [value]="data.completedCount.toString()"></app-stat-card>
+    </div>
+    <div class="col-6 col-lg-3">
+      <app-stat-card label="Subjects" [value]="data.enrolledSubjects.length.toString()"></app-stat-card>
+    </div>
+    <div class="col-6 col-lg-3">
+      <app-stat-card label="Avg. Rating" [value]="data.avgRating ? data.avgRating.toFixed(1) : '—'"></app-stat-card>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-lg-5">
+      <div class="panel h-100">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <app-avatar [name]="data.fullName" size="lg"></app-avatar>
+          <div>
+            <div class="fw-bold">{{ data.fullName }}</div>
+            <div class="text-muted small">{{ data.yearLevel }}</div>
+          </div>
+        </div>
+
+        <div class="detail-label">Enrolled Subjects</div>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <app-subject-badge *ngFor="let subject of data.enrolledSubjects" [name]="subject"></app-subject-badge>
+        </div>
+
+        <div class="detail-label">Account Status</div>
+        <app-status-badge [text]="data.isActive ? 'Active' : 'Inactive'" [variant]="data.isActive ? 'success' : 'neutral'"></app-status-badge>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-7">
+      <div class="panel h-100">
+        <h2 class="section-title">Upcoming Lessons</h2>
+        <div *ngIf="data.upcomingLessons.length; else noUpcoming">
+          <app-lesson-list-item *ngFor="let lesson of data.upcomingLessons" [lesson]="lesson"></app-lesson-list-item>
+        </div>
+        <ng-template #noUpcoming>
+          <p class="text-muted mb-0">No upcoming lessons.</p>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 class="section-title">Lesson History &amp; Recordings</h2>
+    <div *ngIf="data.lessonHistory.length; else noHistory">
+      <app-lesson-history-item *ngFor="let item of data.lessonHistory" [item]="item"></app-lesson-history-item>
+    </div>
+    <ng-template #noHistory>
+      <p class="text-muted mb-0">No lesson history yet.</p>
+    </ng-template>
+  </div>
+</div>

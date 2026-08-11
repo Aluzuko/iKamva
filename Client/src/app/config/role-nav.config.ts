@@ -14,10 +14,8 @@ export const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
   [UserRole.Parent]: [
     { label: 'Dashboard', icon: 'bi-grid-1x2-fill', route: 'dashboard' },
     { label: 'My Children', icon: 'bi-people', route: 'children' },
-    { label: 'Bookings', icon: 'bi-calendar-check', route: 'bookings' },
-    { label: 'Payments & Invoices', icon: 'bi-credit-card', route: 'billing' },
-    { label: 'Messages', icon: 'bi-chat-dots', route: 'messages' },
-    { label: 'Profile', icon: 'bi-person-circle', route: 'profile' },
+    { label: 'Payments', icon: 'bi-credit-card', route: 'payments' },
+    { label: 'Link Student', icon: 'bi-person-plus', route: 'link-student' },
   ],
   [UserRole.Tutor]: [
     { label: 'Dashboard', icon: 'bi-grid-1x2-fill', route: 'dashboard' },
