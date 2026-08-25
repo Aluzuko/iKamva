@@ -197,8 +197,8 @@ public class ParentService : IParentService
 
         await _email.SendAsync(
             normalizedEmail,
-            "You've been invited to Mentivio",
-            "<p>You've been invited to link your Mentivio account to a parent profile. Sign in (or register) to accept.</p>",
+            "You've been invited to iKamva",
+            "<p>You've been invited to link your iKamva account to a parent profile. Sign in (or register) to accept.</p>",
             ct);
     }
 

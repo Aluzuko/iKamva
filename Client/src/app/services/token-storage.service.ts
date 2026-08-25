@@ -9,7 +9,7 @@ interface StoredSession {
   user: UserSummary;
 }
 
-const STORAGE_KEY = 'mentivio.session';
+const STORAGE_KEY = 'iKamva.session';
 
 @Injectable({ providedIn: 'root' })
 export class TokenStorageService {

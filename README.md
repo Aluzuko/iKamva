@@ -1,6 +1,6 @@
-# Mentivio
+# iKamva
 
-Mentivio is a managed online tutoring platform connecting **Students**,
+iKamva is a managed online tutoring platform connecting **Students**,
 **Parents**, **Tutors**, and **Admins** through role-specific dashboards.
 Students and parents book sessions with tutors across subjects like Math,
 Physics, and English; tutors manage their schedule, lesson notes, and
@@ -18,7 +18,7 @@ earnings; admins oversee accounts, pricing, bookings, and disputes.
 ## Project structure
 
 ```
-Mentivio/
+iKamva/
 ├── Client/          Angular frontend
 │   └── src/app/
 │       ├── components/   Sidebar, Topbar, MainLayout, AuthShell, ComingSoon

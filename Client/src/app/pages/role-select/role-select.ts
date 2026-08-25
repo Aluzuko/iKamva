@@ -18,4 +18,7 @@ export class RoleSelect {
   enterAs(role: UserRole): void {
     this.router.navigate(['/login', role]);
   }
+  getYear(): number {
+    return new Date().getFullYear();
+  }
 }

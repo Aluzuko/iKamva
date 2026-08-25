@@ -59,7 +59,7 @@ export class Register implements OnInit {
   }
 
   get roleLabel(): string {
-    return ROLE_OPTIONS.find((r) => r.role === this.role)?.label ?? 'Mentivio';
+    return ROLE_OPTIONS.find((r) => r.role === this.role)?.label ?? 'iKamva';
   }
 
   fieldInvalid(name: 'fullName' | 'email' | 'password'): boolean {
