@@ -13,7 +13,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.Email)
             .IsRequired()
-            .HasMaxLength(320); // RFC 5321 max mailbox length
+            .HasMaxLength(320);
 
         builder.HasIndex(u => u.Email)
             .IsUnique();
@@ -25,8 +25,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasMaxLength(200);
 
-        // Stored as "Student" / "Parent" / "Tutor" / "Admin" in the DB for readability;
-        // the API layer separately serializes this as lowercase JSON to match the frontend.
         builder.Property(u => u.Role)
             .HasConversion<string>()
             .HasMaxLength(20)

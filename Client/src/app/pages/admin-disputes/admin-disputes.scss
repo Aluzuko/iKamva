@@ -1,0 +1,47 @@
+:host {
+  display: block;
+}
+
+.tab-switch {
+  display: inline-flex;
+  background: var(--tl-bg-subtle);
+  border-radius: var(--tl-radius-md);
+  padding: 0.25rem;
+}
+
+.tab-btn {
+  border: none;
+  background: transparent;
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--tl-radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--tl-text-muted);
+}
+.tab-btn.active {
+  background: #fff;
+  color: var(--tl-text-strong);
+  box-shadow: var(--tl-shadow-sm);
+}
+
+.detail-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tl-text-muted);
+  font-weight: 600;
+}
+
+.resolution-box {
+  background: var(--tl-bg-subtle);
+  border-radius: var(--tl-radius-md);
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+}
+
+.response-panel {
+  background: var(--tl-bg-subtle);
+  border-radius: var(--tl-radius-md);
+  padding: 1rem;
+  margin-top: 0.5rem;
+}

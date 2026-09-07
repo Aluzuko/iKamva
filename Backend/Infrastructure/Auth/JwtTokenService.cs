@@ -25,8 +25,6 @@ public class JwtTokenService : IJwtTokenService
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            // Role serializes lowercase to match the frontend's UserRole enum —
-            // see the JsonStringEnumConverter(CamelCase) registered in Program.cs.
             new Claim(ClaimTypes.Role, user.Role.ToString().ToLowerInvariant()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };

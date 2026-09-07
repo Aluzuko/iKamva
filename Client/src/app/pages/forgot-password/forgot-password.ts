@@ -43,9 +43,7 @@ export class ForgotPassword implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    // TODO: replace with a real POST /api/auth/forgot-password call once the
-    // backend endpoint exists. The success state below is shown regardless
-    // of whether the email is registered, to avoid leaking account existence.
+
     this.submitted.set(true);
   }
 }

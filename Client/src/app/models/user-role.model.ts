@@ -9,8 +9,8 @@ export interface RoleOption {
   role: UserRole;
   label: string;
   description: string;
-  icon: string; // bootstrap-icons class, e.g. 'bi-book-half'
-  gradientClass: string; // maps to role-gradient-* scss modifier
+  icon: string;
+  gradientClass: string;
 }
 
 export const ROLE_OPTIONS: RoleOption[] = [

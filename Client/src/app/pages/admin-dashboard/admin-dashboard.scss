@@ -1,0 +1,28 @@
+:host {
+  display: block;
+}
+
+.breakdown-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.breakdown-label {
+  font-size: 0.8rem;
+  color: var(--tl-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.admin-table th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tl-text-muted);
+  font-weight: 600;
+  border-bottom-width: 1px;
+}
+.admin-table td {
+  font-size: 0.9rem;
+}

@@ -37,6 +37,11 @@ public class AuthController : ControllerBase
     {
         var email = request.Email.Trim().ToLowerInvariant();
 
+        if (request.Role == UserRole.Admin)
+        {
+            return StatusCode(403, new { message = "Admin accounts cannot be self-registered." });
+        }
+
         var exists = await _db.Users.AnyAsync(u => u.Email == email, ct);
         if (exists)
         {

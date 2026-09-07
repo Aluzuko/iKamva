@@ -1,0 +1,81 @@
+<h1 class="page-title">Bookings &amp; Payments</h1>
+<p class="page-subtitle mb-4">Monitor platform-wide activity</p>
+
+<div class="tab-switch mb-4">
+  <button type="button" class="tab-btn" [class.active]="activeTab() === 'bookings'" (click)="setTab('bookings')">
+    Bookings
+  </button>
+  <button type="button" class="tab-btn" [class.active]="activeTab() === 'payments'" (click)="setTab('payments')">
+    Payments
+  </button>
+</div>
+
+<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
+
+<div class="panel" *ngIf="!loading() && activeTab() === 'bookings'">
+  <div class="table-responsive" *ngIf="bookings().length; else noBookings">
+    <table class="table align-middle admin-table">
+      <thead>
+        <tr>
+          <th>Subject</th>
+          <th>Student</th>
+          <th>Tutor</th>
+          <th>Scheduled</th>
+          <th>Price</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let booking of bookings()">
+          <td class="fw-semibold">{{ booking.subjectName }}</td>
+          <td>{{ booking.studentName }}</td>
+          <td>{{ booking.tutorName }}</td>
+          <td>{{ booking.scheduledAt | date: 'MMM d, y · h:mm a' }}</td>
+          <td>${{ booking.price }}</td>
+          <td>
+            <app-status-badge
+              [text]="label(booking.status)"
+              [variant]="bookingStatusVariant(booking.status)"
+            ></app-status-badge>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #noBookings>
+    <p class="text-muted mb-0">No bookings yet.</p>
+  </ng-template>
+</div>
+
+<div class="panel" *ngIf="!loading() && activeTab() === 'payments'">
+  <div class="table-responsive" *ngIf="payments().length; else noPayments">
+    <table class="table align-middle admin-table">
+      <thead>
+        <tr>
+          <th>Parent</th>
+          <th>Student</th>
+          <th>Period</th>
+          <th>Amount</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let invoice of payments()">
+          <td>{{ invoice.parentName }}</td>
+          <td>{{ invoice.studentName }}</td>
+          <td>{{ invoice.periodDescription }}</td>
+          <td class="fw-semibold">${{ invoice.amount }}</td>
+          <td>
+            <app-status-badge
+              [text]="label(invoice.status)"
+              [variant]="paymentStatusVariant(invoice.status)"
+            ></app-status-badge>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #noPayments>
+    <p class="text-muted mb-0">No payments yet.</p>
+  </ng-template>
+</div>

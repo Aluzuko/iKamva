@@ -1,0 +1,26 @@
+<h1 class="page-title">Analytics &amp; Reports</h1>
+<p class="page-subtitle mb-4">Platform performance over the last 6 months</p>
+
+<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
+
+<div *ngIf="!loading() && analytics() as data">
+  <div class="panel mb-4">
+    <h2 class="section-title">Revenue</h2>
+    <app-bar-chart [points]="data.revenueByMonth" color="#16a34a" valuePrefix="$"></app-bar-chart>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-6">
+      <div class="panel">
+        <h2 class="section-title">Bookings</h2>
+        <app-bar-chart [points]="data.bookingsByMonth" color="#2563eb"></app-bar-chart>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6">
+      <div class="panel">
+        <h2 class="section-title">Cancellations</h2>
+        <app-bar-chart [points]="data.cancellationsByMonth" color="#dc2626"></app-bar-chart>
+      </div>
+    </div>
+  </div>
+</div>

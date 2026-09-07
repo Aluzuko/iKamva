@@ -8,10 +8,11 @@ import {
   PaymentsOverview,
   StudentDetail,
 } from '../models/parent.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ParentApiService {
-  private readonly baseUrl = '/api/parent';
+  private readonly baseUrl = `${environment.apiUrl}/parent`;
 
   constructor(private readonly http: HttpClient) {}
 

@@ -1,0 +1,93 @@
+<div *ngIf="loading()" class="text-center text-muted py-5">Loading dashboard…</div>
+
+<div *ngIf="!loading() && dashboard() as data">
+  <h1 class="page-title">Admin Overview</h1>
+  <p class="page-subtitle mb-4">Platform-wide activity at a glance</p>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <app-stat-card
+        label="Total Revenue"
+        [value]="'$' + data.totalRevenue"
+        icon="bi-cash-stack"
+        [trend]="{ percent: data.revenueChangePercent, label: 'vs last month' }"
+      ></app-stat-card>
+    </div>
+    <div class="col-6 col-lg-3">
+      <app-stat-card
+        label="Total Bookings"
+        [value]="data.totalBookings.toString()"
+        icon="bi-calendar-check"
+        [trend]="{ percent: data.bookingsChangePercent, label: 'vs last month' }"
+      ></app-stat-card>
+    </div>
+    <div class="col-6 col-lg-3">
+      <app-stat-card label="Active Tutors" [value]="data.activeTutors.toString()" icon="bi-mortarboard"></app-stat-card>
+    </div>
+    <div class="col-6 col-lg-3">
+      <app-stat-card label="Active Students" [value]="data.activeStudents.toString()" icon="bi-people"></app-stat-card>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+      <div class="panel text-center">
+        <div class="breakdown-value text-info">{{ data.upcomingBookings }}</div>
+        <div class="breakdown-label">Upcoming</div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="panel text-center">
+        <div class="breakdown-value text-success">{{ data.completedBookings }}</div>
+        <div class="breakdown-label">Completed</div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="panel text-center">
+        <div class="breakdown-value text-danger">{{ data.cancelledBookings }}</div>
+        <div class="breakdown-label">Cancelled</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 class="section-title">Recent Bookings</h2>
+    <div class="table-responsive" *ngIf="data.recentBookings.length; else noBookings">
+      <table class="table align-middle admin-table">
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Student</th>
+            <th>Tutor</th>
+            <th>Scheduled</th>
+            <th>Price</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let booking of data.recentBookings">
+            <td class="fw-semibold">{{ booking.subjectName }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <app-avatar [name]="booking.studentName" size="sm"></app-avatar>
+                {{ booking.studentName }}
+              </div>
+            </td>
+            <td>{{ booking.tutorName }}</td>
+            <td>{{ booking.scheduledAt | date: 'MMM d, y · h:mm a' }}</td>
+            <td>${{ booking.price }}</td>
+            <td>
+              <app-status-badge
+                [text]="statusLabel(booking.status)"
+                [variant]="statusVariant(booking.status)"
+              ></app-status-badge>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #noBookings>
+      <p class="text-muted mb-0">No bookings yet.</p>
+    </ng-template>
+  </div>
+</div>

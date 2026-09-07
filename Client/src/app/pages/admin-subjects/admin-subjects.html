@@ -1,0 +1,89 @@
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <h1 class="page-title">Subjects &amp; Pricing</h1>
+    <p class="page-subtitle">Manage default hourly rates and platform commission</p>
+  </div>
+  <button type="button" class="btn btn-primary-role" (click)="showCreateForm.set(!showCreateForm())">
+    <i class="bi bi-plus-lg me-1"></i>Add Subject
+  </button>
+</div>
+
+<div class="panel mb-4" *ngIf="showCreateForm()">
+  <h2 class="section-title">New Subject</h2>
+  <form [formGroup]="createForm" (ngSubmit)="submitCreate()" novalidate>
+    <div class="row g-3">
+      <div class="col-12 col-md-4">
+        <label class="auth-form-label">Subject name</label>
+        <input type="text" class="form-control" formControlName="name" placeholder="Chemistry" />
+      </div>
+      <div class="col-6 col-md-4">
+        <label class="auth-form-label">Default hourly rate ($)</label>
+        <input type="number" class="form-control" formControlName="defaultHourlyRate" />
+      </div>
+      <div class="col-6 col-md-4">
+        <label class="auth-form-label">Commission (%)</label>
+        <input type="number" class="form-control" formControlName="commissionPercent" />
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" class="btn btn-primary-role" [disabled]="submitting()">Create</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="showCreateForm.set(false)">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
+
+<div class="panel" *ngIf="!loading()">
+  <div class="table-responsive" *ngIf="subjects().length; else noSubjects">
+    <table class="table align-middle admin-table">
+      <thead>
+        <tr>
+          <th>Subject</th>
+          <th>Tutors</th>
+          <th>Default Rate</th>
+          <th>Commission</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let subject of subjects()">
+          <td class="fw-semibold">{{ subject.name }}</td>
+          <td>{{ subject.tutorCount }}</td>
+
+          <ng-container *ngIf="editingId() !== subject.subjectId; else editRow">
+            <td>${{ subject.defaultHourlyRate }}/hr</td>
+            <td>{{ subject.commissionPercent }}%</td>
+            <td class="text-end">
+              <button type="button" class="btn btn-outline-secondary btn-sm" (click)="startEdit(subject)">
+                Edit
+              </button>
+            </td>
+          </ng-container>
+
+          <ng-template #editRow>
+            <td>
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="editRate" [ngModelOptions]="{ standalone: true }" />
+            </td>
+            <td>
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="editCommission" [ngModelOptions]="{ standalone: true }" />
+            </td>
+            <td class="text-end">
+              <div class="d-flex gap-2 justify-content-end">
+                <button type="button" class="btn btn-primary-role btn-sm" (click)="saveEdit(subject.subjectId)">
+                  Save
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cancelEdit()">
+                  Cancel
+                </button>
+              </div>
+            </td>
+          </ng-template>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #noSubjects>
+    <p class="text-muted mb-0">No subjects yet.</p>
+  </ng-template>
+</div>

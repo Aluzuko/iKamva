@@ -1,0 +1,9 @@
+<div class="bar-chart">
+  <div class="bar-column" *ngFor="let point of points">
+    <div class="bar-value">{{ valuePrefix }}{{ point.value }}</div>
+    <div class="bar-track">
+      <div class="bar-fill" [style.height.%]="heightPercent(point.value)" [style.background]="color"></div>
+    </div>
+    <div class="bar-label">{{ point.label }}</div>
+  </div>
+</div>

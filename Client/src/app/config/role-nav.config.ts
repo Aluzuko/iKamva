@@ -34,6 +34,5 @@ export const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: 'Bookings & Payments', icon: 'bi-wallet2', route: 'payments' },
     { label: 'Disputes & Refunds', icon: 'bi-exclamation-triangle', route: 'disputes' },
     { label: 'Analytics & Reports', icon: 'bi-bar-chart', route: 'analytics' },
-    { label: 'Settings', icon: 'bi-gear', route: 'settings' },
   ],
 };

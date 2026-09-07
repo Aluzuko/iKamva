@@ -5,9 +5,10 @@ import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { NotificationContainer } from './components/notification-container/notification-container';
+import { Profile } from './pages/profile/profile';
 
 @NgModule({
-  declarations: [App],
+  declarations: [App, Profile],
   imports: [BrowserModule, HttpClientModule, AppRoutingModule, NotificationContainer],
   providers: [
     provideBrowserGlobalErrorListeners(),

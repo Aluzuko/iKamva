@@ -25,6 +25,14 @@ public class AppDbContext : DbContext
 
     public DbSet<Invoice> Invoices => Set<Invoice>();
 
+    public DbSet<TutorProfile> TutorProfiles => Set<TutorProfile>();
+
+    public DbSet<TutorSubject> TutorSubjects => Set<TutorSubject>();
+
+    public DbSet<VerificationDocument> VerificationDocuments => Set<VerificationDocument>();
+
+    public DbSet<Dispute> Disputes => Set<Dispute>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

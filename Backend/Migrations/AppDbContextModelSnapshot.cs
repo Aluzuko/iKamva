@@ -74,6 +74,52 @@ namespace Backend.Migrations
                     b.ToTable("Bookings", (string)null);
                 });
 
+            modelBuilder.Entity("Backend.Domain.Entities.Dispute", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("RaisedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Resolution")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RaisedByUserId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Disputes", (string)null);
+                });
+
             modelBuilder.Entity("Backend.Domain.Entities.Invoice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -206,6 +252,12 @@ namespace Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("CommissionPercent")
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<decimal>("DefaultHourlyRate")
+                        .HasColumnType("numeric(10,2)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -222,28 +274,82 @@ namespace Backend.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000001"),
+                            CommissionPercent = 15m,
+                            DefaultHourlyRate = 85m,
                             Name = "Mathematics"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000002"),
+                            CommissionPercent = 15m,
+                            DefaultHourlyRate = 90m,
                             Name = "Physics"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000003"),
+                            CommissionPercent = 15m,
+                            DefaultHourlyRate = 95m,
                             Name = "Computer Science"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000004"),
+                            CommissionPercent = 12m,
+                            DefaultHourlyRate = 65m,
                             Name = "English Literature"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000005"),
+                            CommissionPercent = 12m,
+                            DefaultHourlyRate = 65m,
                             Name = "French"
                         });
+                });
+
+            modelBuilder.Entity("Backend.Domain.Entities.TutorProfile", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Bio")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<decimal>("HourlyRate")
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("VerificationStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("YearsExperience")
+                        .HasColumnType("integer");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("TutorProfiles", (string)null);
+                });
+
+            modelBuilder.Entity("Backend.Domain.Entities.TutorSubject", b =>
+                {
+                    b.Property<Guid>("TutorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("TutorUserId", "SubjectId");
+
+                    b.HasIndex("SubjectId");
+
+                    b.ToTable("TutorSubjects", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Domain.Entities.User", b =>
@@ -264,6 +370,9 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsEmailVerified")
                         .HasColumnType("boolean");
@@ -335,6 +444,40 @@ namespace Backend.Migrations
                     b.ToTable("UserSessions", (string)null);
                 });
 
+            modelBuilder.Entity("Backend.Domain.Entities.VerificationDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("TutorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TutorUserId");
+
+                    b.ToTable("VerificationDocuments", (string)null);
+                });
+
             modelBuilder.Entity("Backend.Domain.Entities.Booking", b =>
                 {
                     b.HasOne("Backend.Domain.Entities.Subject", "Subject")
@@ -376,6 +519,36 @@ namespace Backend.Migrations
                     b.Navigation("Subject");
                 });
 
+            modelBuilder.Entity("Backend.Domain.Entities.TutorProfile", b =>
+                {
+                    b.HasOne("Backend.Domain.Entities.User", "User")
+                        .WithOne()
+                        .HasForeignKey("Backend.Domain.Entities.TutorProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Backend.Domain.Entities.TutorSubject", b =>
+                {
+                    b.HasOne("Backend.Domain.Entities.Subject", "Subject")
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Domain.Entities.TutorProfile", "TutorProfile")
+                        .WithMany("Subjects")
+                        .HasForeignKey("TutorUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Subject");
+
+                    b.Navigation("TutorProfile");
+                });
+
             modelBuilder.Entity("Backend.Domain.Entities.UserSession", b =>
                 {
                     b.HasOne("Backend.Domain.Entities.User", "User")
@@ -387,8 +560,26 @@ namespace Backend.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Backend.Domain.Entities.VerificationDocument", b =>
+                {
+                    b.HasOne("Backend.Domain.Entities.TutorProfile", "TutorProfile")
+                        .WithMany("Documents")
+                        .HasForeignKey("TutorUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TutorProfile");
+                });
+
             modelBuilder.Entity("Backend.Domain.Entities.StudentProfile", b =>
                 {
+                    b.Navigation("Subjects");
+                });
+
+            modelBuilder.Entity("Backend.Domain.Entities.TutorProfile", b =>
+                {
+                    b.Navigation("Documents");
+
                     b.Navigation("Subjects");
                 });
 

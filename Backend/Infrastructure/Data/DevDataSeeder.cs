@@ -20,25 +20,33 @@ public static class DevDataSeeder
         var hash = hasher.Hash(DemoPassword);
 
         var maria = NewUser("maria@example.com", hash, "Maria Thompson", UserRole.Parent);
+        var robert = NewUser("robert@example.com", hash, "Robert Nguyen", UserRole.Parent);
         var alex = NewUser("alex@example.com", hash, "Alex Thompson", UserRole.Student);
         var emma = NewUser("emma@example.com", hash, "Emma Thompson", UserRole.Student);
+        var liam = NewUser("liam@example.com", hash, "Liam Nguyen", UserRole.Student);
         var sarahChen = NewUser("sarah.chen@example.com", hash, "Dr. Sarah Chen", UserRole.Tutor);
         var jamesOkafor = NewUser("james.okafor@example.com", hash, "James Okafor", UserRole.Tutor);
         var marcusWebb = NewUser("marcus.webb@example.com", hash, "Marcus Webb", UserRole.Tutor);
         var isabelleFontaine = NewUser("isabelle.fontaine@example.com", hash, "Isabelle Fontaine", UserRole.Tutor);
+        var davidKim = NewUser("david.kim@example.com", hash, "David Kim", UserRole.Tutor);
+        var admin = NewUser("admin@example.com", hash, "Priya Nadar", UserRole.Admin);
 
-        db.Users.AddRange(maria, alex, emma, sarahChen, jamesOkafor, marcusWebb, isabelleFontaine);
+        db.Users.AddRange(
+            maria, robert, alex, emma, liam,
+            sarahChen, jamesOkafor, marcusWebb, isabelleFontaine, davidKim, admin);
 
         var alexProfile = new StudentProfile { UserId = alex.Id, YearLevel = "Year 11", LinkCode = "ALEX2026" };
         var emmaProfile = new StudentProfile { UserId = emma.Id, YearLevel = "Year 9", LinkCode = "EMMA2026" };
-        db.StudentProfiles.AddRange(alexProfile, emmaProfile);
+        var liamProfile = new StudentProfile { UserId = liam.Id, YearLevel = "Year 10", LinkCode = "LIAM2026" };
+        db.StudentProfiles.AddRange(alexProfile, emmaProfile, liamProfile);
 
         db.StudentSubjects.AddRange(
             new StudentSubject { StudentUserId = alex.Id, SubjectId = Configurations.SubjectConfiguration.Mathematics },
             new StudentSubject { StudentUserId = alex.Id, SubjectId = Configurations.SubjectConfiguration.Physics },
             new StudentSubject { StudentUserId = alex.Id, SubjectId = Configurations.SubjectConfiguration.ComputerScience },
             new StudentSubject { StudentUserId = emma.Id, SubjectId = Configurations.SubjectConfiguration.EnglishLiterature },
-            new StudentSubject { StudentUserId = emma.Id, SubjectId = Configurations.SubjectConfiguration.French }
+            new StudentSubject { StudentUserId = emma.Id, SubjectId = Configurations.SubjectConfiguration.French },
+            new StudentSubject { StudentUserId = liam.Id, SubjectId = Configurations.SubjectConfiguration.Mathematics }
         );
 
         db.ParentStudentLinks.AddRange(
@@ -51,6 +59,68 @@ public static class DevDataSeeder
             {
                 ParentUserId = maria.Id, StudentUserId = emma.Id,
                 Relationship = Relationship.Parent, Status = LinkStatus.Active, AcceptedAt = now,
+            },
+            new ParentStudentLink
+            {
+                ParentUserId = robert.Id, StudentUserId = liam.Id,
+                Relationship = Relationship.Parent, Status = LinkStatus.Active, AcceptedAt = now,
+            }
+        );
+
+        db.TutorProfiles.AddRange(
+            new TutorProfile
+            {
+                UserId = sarahChen.Id, Bio = "PhD in Applied Mathematics, 8 years tutoring experience.",
+                HourlyRate = 85m, YearsExperience = 8, VerificationStatus = VerificationStatus.Approved,
+            },
+            new TutorProfile
+            {
+                UserId = jamesOkafor.Id, Bio = "English Literature specialist, former secondary school teacher.",
+                HourlyRate = 65m, YearsExperience = 6, VerificationStatus = VerificationStatus.Approved,
+            },
+            new TutorProfile
+            {
+                UserId = marcusWebb.Id, Bio = "Software engineer turned Computer Science tutor.",
+                HourlyRate = 90m, YearsExperience = 4, VerificationStatus = VerificationStatus.Approved,
+            },
+            new TutorProfile
+            {
+                UserId = isabelleFontaine.Id, Bio = "Native French speaker, DELF examiner.",
+                HourlyRate = 65m, YearsExperience = 10, VerificationStatus = VerificationStatus.Approved,
+            },
+            new TutorProfile
+            {
+                UserId = davidKim.Id, Bio = "Physics graduate applying to join the platform.",
+                HourlyRate = 80m, YearsExperience = 2, VerificationStatus = VerificationStatus.Pending,
+            }
+        );
+
+        db.TutorSubjects.AddRange(
+            new TutorSubject { TutorUserId = sarahChen.Id, SubjectId = Configurations.SubjectConfiguration.Mathematics },
+            new TutorSubject { TutorUserId = sarahChen.Id, SubjectId = Configurations.SubjectConfiguration.Physics },
+            new TutorSubject { TutorUserId = jamesOkafor.Id, SubjectId = Configurations.SubjectConfiguration.EnglishLiterature },
+            new TutorSubject { TutorUserId = marcusWebb.Id, SubjectId = Configurations.SubjectConfiguration.ComputerScience },
+            new TutorSubject { TutorUserId = isabelleFontaine.Id, SubjectId = Configurations.SubjectConfiguration.French },
+            new TutorSubject { TutorUserId = davidKim.Id, SubjectId = Configurations.SubjectConfiguration.Physics }
+        );
+
+        db.VerificationDocuments.AddRange(
+            new VerificationDocument
+            {
+                TutorUserId = davidKim.Id, DocumentType = DocumentType.IdDocument,
+                FileName = "david-kim-id.pdf", FileUrl = "https://example.com/documents/david-kim-id.pdf",
+            },
+            new VerificationDocument
+            {
+                TutorUserId = davidKim.Id, DocumentType = DocumentType.Qualification,
+                FileName = "david-kim-physics-degree.pdf",
+                FileUrl = "https://example.com/documents/david-kim-physics-degree.pdf",
+            },
+            new VerificationDocument
+            {
+                TutorUserId = davidKim.Id, DocumentType = DocumentType.BackgroundCheck,
+                FileName = "david-kim-background-check.pdf",
+                FileUrl = "https://example.com/documents/david-kim-background-check.pdf",
             }
         );
 
@@ -74,7 +144,15 @@ public static class DevDataSeeder
                 "Essay structure for Hamlet analysis. Strong improvement in thesis writing."),
             Booking(emma.Id, isabelleFontaine.Id, Configurations.SubjectConfiguration.French,
                 now.AddDays(-14), 60, 65m, BookingStatus.Completed,
-                "Conversational French — restaurant and travel vocabulary.")
+                "Conversational French — restaurant and travel vocabulary."),
+            Booking(liam.Id, sarahChen.Id, Configurations.SubjectConfiguration.Mathematics,
+                now.AddDays(-20), 60, 85m, BookingStatus.Completed, "Quadratic equations review."),
+            Booking(liam.Id, sarahChen.Id, Configurations.SubjectConfiguration.Mathematics,
+                now.AddDays(-35), 60, 85m, BookingStatus.Completed, "Trigonometry fundamentals."),
+            Booking(liam.Id, sarahChen.Id, Configurations.SubjectConfiguration.Mathematics,
+                now.AddDays(-50), 60, 85m, BookingStatus.Cancelled),
+            Booking(alex.Id, marcusWebb.Id, Configurations.SubjectConfiguration.ComputerScience,
+                now.AddDays(-65), 60, 90m, BookingStatus.Completed, "Intro to recursion.")
         );
 
         var lastMonth = now.AddMonths(-1);
@@ -86,7 +164,30 @@ public static class DevDataSeeder
             Invoice(maria.Id, alex.Id, lastMonth.Year, lastMonth.Month, 10, 780m, InvoiceStatus.Paid),
             Invoice(maria.Id, alex.Id, twoMonthsAgo.Year, twoMonthsAgo.Month, 9, 695m, InvoiceStatus.Paid),
             Invoice(maria.Id, alex.Id, threeMonthsAgo.Year, threeMonthsAgo.Month, 7, 540m, InvoiceStatus.Paid),
-            Invoice(maria.Id, emma.Id, now.Year, now.Month, 3, 195m, InvoiceStatus.Paid)
+            Invoice(maria.Id, emma.Id, now.Year, now.Month, 3, 195m, InvoiceStatus.Paid),
+            Invoice(robert.Id, liam.Id, now.Year, now.Month, 2, 170m, InvoiceStatus.Pending),
+            Invoice(robert.Id, liam.Id, lastMonth.Year, lastMonth.Month, 4, 340m, InvoiceStatus.Paid)
+        );
+
+        db.Disputes.AddRange(
+            new Dispute
+            {
+                RaisedByUserId = maria.Id,
+                Subject = "Charged for a cancelled lesson",
+                Description = "The Mathematics lesson on the 15th was cancelled by the tutor but I was still charged.",
+                Status = DisputeStatus.Open,
+                CreatedAt = now.AddDays(-2),
+            },
+            new Dispute
+            {
+                RaisedByUserId = robert.Id,
+                Subject = "Tutor arrived late",
+                Description = "Session started 20 minutes late with no notice.",
+                Status = DisputeStatus.Resolved,
+                Resolution = "Issued a partial credit to the parent's account.",
+                CreatedAt = now.AddDays(-10),
+                ResolvedAt = now.AddDays(-8),
+            }
         );
 
         await db.SaveChangesAsync(ct);

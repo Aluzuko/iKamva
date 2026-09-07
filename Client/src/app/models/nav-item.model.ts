@@ -1,6 +1,6 @@
 export interface NavItem {
   label: string;
-  icon: string; // bootstrap-icons class
-  route: string; // relative child route, e.g. 'dashboard'
+  icon: string;
+  route: string;
   badge?: number | 'new';
 }

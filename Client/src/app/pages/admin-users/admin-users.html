@@ -1,0 +1,65 @@
+<h1 class="page-title">Students &amp; Parents</h1>
+<p class="page-subtitle mb-4">Manage platform accounts</p>
+
+<div class="tab-switch mb-4">
+  <button type="button" class="tab-btn" [class.active]="filter() === 'all'" (click)="setFilter('all')">All</button>
+  <button type="button" class="tab-btn" [class.active]="filter() === 'student'" (click)="setFilter('student')">
+    Students
+  </button>
+  <button type="button" class="tab-btn" [class.active]="filter() === 'parent'" (click)="setFilter('parent')">
+    Parents
+  </button>
+</div>
+
+<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
+
+<div class="panel" *ngIf="!loading()">
+  <div class="table-responsive" *ngIf="users().length; else noUsers">
+    <table class="table align-middle admin-table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Role</th>
+          <th>Joined</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of users()">
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <app-avatar [name]="user.fullName" size="sm"></app-avatar>
+              <div>
+                <div class="fw-semibold">{{ user.fullName }}</div>
+                <div class="text-muted small">{{ user.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="text-capitalize">{{ user.role }}</td>
+          <td>{{ user.createdAt | date: 'MMM d, y' }}</td>
+          <td>
+            <app-status-badge
+              [text]="user.isActive ? 'Active' : 'Suspended'"
+              [variant]="user.isActive ? 'success' : 'danger'"
+            ></app-status-badge>
+          </td>
+          <td class="text-end">
+            <button
+              type="button"
+              class="btn btn-sm"
+              [class.btn-outline-danger]="user.isActive"
+              [class.btn-outline-success]="!user.isActive"
+              (click)="toggleActive(user)"
+            >
+              {{ user.isActive ? 'Suspend' : 'Activate' }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #noUsers>
+    <p class="text-muted mb-0">No accounts found.</p>
+  </ng-template>
+</div>

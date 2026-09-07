@@ -14,13 +14,23 @@ import { ParentChildren } from './pages/parent-children/parent-children';
 import { StudentDetailPage } from './pages/student-detail/student-detail';
 import { ParentPayments } from './pages/parent-payments/parent-payments';
 import { LinkStudent } from './pages/link-student/link-student';
+import { AdminDashboard } from './pages/admin-dashboard/admin-dashboard';
+import { AdminTutors } from './pages/admin-tutors/admin-tutors';
+import { AdminUsers } from './pages/admin-users/admin-users';
+import { AdminSubjects } from './pages/admin-subjects/admin-subjects';
+import { AdminBookings } from './pages/admin-bookings/admin-bookings';
+import { AdminDisputes } from './pages/admin-disputes/admin-disputes';
+import { AdminAnalytics } from './pages/admin-analytics/admin-analytics';
+import { Profile } from './pages/profile/profile';
 
-function screensFor(role: UserRole) {
-  return ROLE_NAV_ITEMS[role].map((item) => ({
-    path: item.route,
-    component: ComingSoon,
-    data: { title: item.label },
-  }));
+function screensFor(role: UserRole, excludeRoutes: string[] = []) {
+  return ROLE_NAV_ITEMS[role]
+    .filter((item) => !excludeRoutes.includes(item.route))
+    .map((item) => ({
+      path: item.route,
+      component: ComingSoon,
+      data: { title: item.label },
+    }));
 }
 
 const routes: Routes = [
@@ -70,9 +80,17 @@ const routes: Routes = [
     canActivate: [authGuard, roleGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-      ...screensFor(UserRole.Admin),
+      { path: 'dashboard', component: AdminDashboard },
+      { path: 'tutors', component: AdminTutors },
+      { path: 'users', component: AdminUsers },
+      { path: 'pricing', component: AdminSubjects },
+      { path: 'payments', component: AdminBookings },
+      { path: 'disputes', component: AdminDisputes },
+      { path: 'analytics', component: AdminAnalytics },
+      ...screensFor(UserRole.Admin, ['dashboard', 'tutors', 'users', 'pricing', 'payments', 'disputes', 'analytics']),
     ],
   },
+  {path:  'profile', component: Profile},
   { path: '**', redirectTo: '/role-select' },
 ];
 

@@ -11,7 +11,6 @@ import { ROLE_OPTIONS, UserRole } from '../../models/user-role.model';
   styleUrl: './auth-shell.scss',
 })
 export class AuthShell {
-  /** Optional — omit for role-agnostic pages like Forgot Password. */
   @Input() role: UserRole | null = null;
   @Input({ required: true }) title!: string;
   @Input() subtitle: string | null = null;

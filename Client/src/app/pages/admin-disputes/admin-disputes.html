@@ -1,0 +1,73 @@
+<h1 class="page-title">Disputes &amp; Refunds</h1>
+<p class="page-subtitle mb-4">Review and resolve reported issues</p>
+
+<div class="tab-switch mb-4">
+  <button type="button" class="tab-btn" [class.active]="activeTab() === 'open'" (click)="setTab('open')">
+    Open
+  </button>
+  <button type="button" class="tab-btn" [class.active]="activeTab() === 'resolved'" (click)="setTab('resolved')">
+    Resolved
+  </button>
+</div>
+
+<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
+
+<div *ngIf="!loading()">
+  <div *ngIf="filtered.length; else noDisputes">
+    <div class="panel mb-3" *ngFor="let dispute of filtered">
+      <div class="d-flex justify-content-between align-items-start">
+        <div class="d-flex gap-3">
+          <app-avatar [name]="dispute.raisedByName" size="md"></app-avatar>
+          <div>
+            <div class="fw-bold">{{ dispute.subject }}</div>
+            <div class="text-muted small mb-2">
+              Raised by {{ dispute.raisedByName }} · {{ dispute.createdAt | date: 'MMM d, y' }}
+            </div>
+            <p class="mb-0">{{ dispute.description }}</p>
+          </div>
+        </div>
+        <app-status-badge [text]="statusLabel(dispute.status)" [variant]="statusVariant(dispute.status)"></app-status-badge>
+      </div>
+
+      <div class="resolution-box mt-3" *ngIf="dispute.resolution">
+        <div class="detail-label mb-1">Resolution</div>
+        <p class="mb-0">{{ dispute.resolution }}</p>
+      </div>
+
+      <div class="mt-3" *ngIf="dispute.status === 'open'">
+        <div *ngIf="respondingId() !== dispute.disputeId">
+          <button type="button" class="btn btn-primary-role btn-sm" (click)="startRespond(dispute.disputeId)">
+            Respond
+          </button>
+        </div>
+
+        <div class="response-panel" *ngIf="respondingId() === dispute.disputeId">
+          <label class="auth-form-label">Resolution notes</label>
+          <textarea
+            class="form-control mb-2"
+            rows="2"
+            [value]="resolutionText()"
+            (input)="resolutionText.set($any($event.target).value)"
+          ></textarea>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary-role btn-sm" (click)="resolve(dispute.disputeId)">
+              Mark Resolved
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm" (click)="reject(dispute.disputeId)">
+              Reject Claim
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cancelRespond()">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <ng-template #noDisputes>
+    <div class="panel text-center py-5">
+      <i class="bi bi-check-circle fs-1 text-muted"></i>
+      <p class="text-muted mt-2 mb-0">Nothing here.</p>
+    </div>
+  </ng-template>
+</div>

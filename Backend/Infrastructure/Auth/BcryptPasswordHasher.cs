@@ -2,7 +2,6 @@ namespace Backend.Infrastructure.Auth;
 
 public class BcryptPasswordHasher : IPasswordHasher
 {
-    // Work factor 12 is a reasonable balance of security vs. login latency as of 2026.
     private const int WorkFactor = 12;
 
     public string Hash(string password) =>

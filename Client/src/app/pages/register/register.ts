@@ -98,7 +98,6 @@ export class Register implements OnInit {
   }
 
   continueWith(provider: 'google' | 'facebook'): void {
-    // TODO: wire up real OAuth (Google/Facebook) once backend supports it.
     this.router.navigate(['/', this.role, 'dashboard']);
   }
 }

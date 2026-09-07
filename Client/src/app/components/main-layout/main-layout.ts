@@ -17,8 +17,6 @@ export class MainLayout implements OnInit {
   readonly sidebarCollapsed = signal(false);
   role: UserRole = UserRole.Student;
 
-  // Applies e.g. "role-student" to the host element so child components
-  // (via var(--tl-role-color)) can theme themselves per active role.
   @HostBinding('class') get hostClass(): string {
     return `app-shell role-${this.role}`;
   }

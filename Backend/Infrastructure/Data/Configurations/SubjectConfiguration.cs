@@ -18,13 +18,15 @@ public class SubjectConfiguration : IEntityTypeConfiguration<Subject>
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Name).IsRequired().HasMaxLength(100);
         builder.HasIndex(s => s.Name).IsUnique();
+        builder.Property(s => s.DefaultHourlyRate).HasColumnType("numeric(10,2)");
+        builder.Property(s => s.CommissionPercent).HasColumnType("numeric(5,2)");
 
         builder.HasData(
-            new Subject { Id = Mathematics, Name = "Mathematics" },
-            new Subject { Id = Physics, Name = "Physics" },
-            new Subject { Id = ComputerScience, Name = "Computer Science" },
-            new Subject { Id = EnglishLiterature, Name = "English Literature" },
-            new Subject { Id = French, Name = "French" }
+            new Subject { Id = Mathematics, Name = "Mathematics", DefaultHourlyRate = 85m, CommissionPercent = 15m },
+            new Subject { Id = Physics, Name = "Physics", DefaultHourlyRate = 90m, CommissionPercent = 15m },
+            new Subject { Id = ComputerScience, Name = "Computer Science", DefaultHourlyRate = 95m, CommissionPercent = 15m },
+            new Subject { Id = EnglishLiterature, Name = "English Literature", DefaultHourlyRate = 65m, CommissionPercent = 12m },
+            new Subject { Id = French, Name = "French", DefaultHourlyRate = 65m, CommissionPercent = 12m }
         );
     }
 }
