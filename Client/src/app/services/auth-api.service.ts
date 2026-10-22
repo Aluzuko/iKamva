@@ -3,11 +3,10 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { AuthResponse, LoginPayload, RegisterPayload } from '../models/auth.model';
 import { TokenStorageService } from './token-storage.service';
-import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
-  private readonly baseUrl = `${environment.apiUrl}/auth`;
+  private readonly baseUrl = '/api/auth';
 
   constructor(private readonly http: HttpClient, private readonly tokenStorage: TokenStorageService) {}
 

@@ -1,0 +1,17 @@
+## .NET build output
+bin/
+obj/
+
+## User-specific files
+*.user
+*.suo
+
+## Secrets — never commit real credentials or signing keys.
+## Local dev config holds a real DB connection string; keep it out of source control.
+appsettings.Development.json
+appsettings.*.local.json
+*.pfx
+
+## IDE
+.vs/
+.vscode/

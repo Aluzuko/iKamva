@@ -1,26 +1,30 @@
-<div class="auth-page d-flex flex-column align-items-center justify-content-center min-vh-100 px-3 py-5" [ngClass]="role ? 'role-' + role : ''">
-  <a routerLink="/role-select" class="brand-link d-flex align-items-center gap-2 text-decoration-none mb-4">
-    <span class="brand-mark-sm d-flex align-items-center justify-content-center rounded-circle">
-      <i class="bi bi-journal-bookmark-fill"></i>
-    </span>
-    <span class="brand-name">iKamva</span>
-  </a>
+<div class="auth-layout">
+  <aside class="auth-side">
+    <a class="brand-link" routerLink="/login">
+      <span class="brand-mark"><i class="bi bi-book" aria-hidden="true"></i></span>
+      <span>iKamva</span>
+    </a>
 
-  <div class="auth-card">
-    <div class="auth-card-bar" *ngIf="role"></div>
-    <div class="auth-card-body">
-      <span class="role-pill mb-3" *ngIf="roleOption">
-        <i class="bi" [ngClass]="roleOption.icon"></i>
-        {{ roleOption.label }}
-      </span>
-      <h1 class="auth-title mb-1">{{ title }}</h1>
-      <p class="auth-subtitle text-muted mb-4" *ngIf="subtitle">{{ subtitle }}</p>
+    <div class="auth-copy" *ngIf="side === 'signin'">
+      <h2>One sign-in for students, parents, tutors and admins.</h2>
+      <p class="auth-lead">We recognise your account and open the workspace that belongs to it.</p>
+    </div>
 
+    <div class="auth-copy" *ngIf="side === 'signup'">
+      <h2>Create your account once. We'll remember who you are.</h2>
+      <ul class="auth-points">
+        <li><i class="bi bi-check2" aria-hidden="true"></i>Students book lessons and keep their recordings in one place.</li>
+        <li><i class="bi bi-check2" aria-hidden="true"></i>Parents follow progress and pay one monthly invoice per child.</li>
+        <li><i class="bi bi-check2" aria-hidden="true"></i>Tutors are verified before students can book them.</li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="auth-main">
+    <div class="auth-panel">
+      <h1>{{ title }}</h1>
+      <p class="auth-sub" *ngIf="subtitle">{{ subtitle }}</p>
       <ng-content></ng-content>
     </div>
-  </div>
-
-  <a routerLink="/role-select" class="text-muted small mt-4 text-decoration-none">
-    <i class="bi bi-arrow-left me-1"></i>Back to role selection
-  </a>
+  </main>
 </div>

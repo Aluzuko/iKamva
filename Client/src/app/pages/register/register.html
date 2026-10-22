@@ -1,92 +1,95 @@
-<app-auth-shell [role]="role" title="Create your account" [subtitle]="'Join iKamva as a ' + roleLabel">
-  <div class="alert alert-danger py-2 small mb-3" *ngIf="errorMessage()">
-    {{ errorMessage() }}
-  </div>
+<app-auth-shell
+  side="signup"
+  title="Create an account"
+  subtitle="Choose how you'll use iKamva. This sets what you see after you sign in."
+>
+  <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="notice notice-error" role="alert" *ngIf="errorMessage()">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+      <span>{{ errorMessage() }}</span>
+    </div>
+    <div class="notice notice-error" role="alert" *ngIf="emailTaken()">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+      <span>An account with this email already exists. <a routerLink="/login">Sign in instead</a> or use a different email.</span>
+    </div>
 
-  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-    <div class="mb-3">
-      <label for="fullName" class="auth-form-label">Full name</label>
+    <fieldset class="role-pick">
+      <legend>I'm joining as</legend>
+      <div class="role-option" *ngFor="let option of roles">
+        <input type="radio" [id]="'role-' + option.role" formControlName="role" [value]="option.role" />
+        <label [for]="'role-' + option.role">
+          <strong><i class="bi" [ngClass]="option.icon" aria-hidden="true"></i>{{ option.label }}</strong>
+          <span>{{ option.description }}</span>
+        </label>
+      </div>
+    </fieldset>
+
+    <div>
+      <label for="fullName" class="form-label">Full name</label>
       <input
         id="fullName"
         type="text"
         class="form-control"
-        [class.is-invalid]="fieldInvalid('fullName')"
+        [class.is-invalid]="invalid('fullName')"
         formControlName="fullName"
-        placeholder="Jane Doe"
         autocomplete="name"
+        aria-describedby="fullName-error"
       />
-      <div class="invalid-feedback" *ngIf="fieldInvalid('fullName')">
-        Enter your full name.
-      </div>
+      <div class="invalid-feedback" id="fullName-error" *ngIf="invalid('fullName')">Enter your full name.</div>
     </div>
 
-    <div class="mb-3">
-      <label for="email" class="auth-form-label">Email</label>
+    <div>
+      <label for="email" class="form-label">Email address</label>
       <input
         id="email"
         type="email"
         class="form-control"
-        [class.is-invalid]="fieldInvalid('email')"
+        [class.is-invalid]="invalid('email') || emailTaken()"
         formControlName="email"
-        placeholder="you@example.com"
-        autocomplete="username"
+        autocomplete="email"
+        aria-describedby="email-help email-error"
       />
-      <div class="invalid-feedback" *ngIf="fieldInvalid('email')">
-        Enter a valid email address.
+      <div class="invalid-feedback" id="email-error" *ngIf="invalid('email')">
+        Enter an email address like name&#64;example.com.
       </div>
-      <div class="form-text">You'll use this email to sign in — no separate username.</div>
+      <div class="form-text" id="email-help">You'll use this to sign in. Each email can only have one account.</div>
     </div>
 
-    <div class="mb-3">
-      <label for="password" class="auth-form-label">Password</label>
+    <div>
+      <label for="password" class="form-label">Password</label>
       <input
         id="password"
         type="password"
         class="form-control"
-        [class.is-invalid]="fieldInvalid('password')"
+        [class.is-invalid]="invalid('password')"
         formControlName="password"
-        placeholder="••••••••"
         autocomplete="new-password"
+        aria-describedby="password-help"
       />
-      <div class="invalid-feedback" *ngIf="fieldInvalid('password')">
-        Password must be at least 6 characters.
+      <div class="form-text" id="password-help" [class.text-danger]="invalid('password')">
+        At least 8 characters, with an uppercase letter, a lowercase letter and a number.
       </div>
     </div>
 
-    <div class="mb-3">
-      <label for="confirmPassword" class="auth-form-label">Confirm password</label>
+    <div>
+      <label for="confirmPassword" class="form-label">Confirm password</label>
       <input
         id="confirmPassword"
         type="password"
         class="form-control"
-        [class.is-invalid]="confirmPasswordInvalid"
+        [class.is-invalid]="confirmInvalid"
         formControlName="confirmPassword"
-        placeholder="••••••••"
         autocomplete="new-password"
+        aria-describedby="confirm-error"
       />
-      <div class="invalid-feedback" *ngIf="confirmPasswordInvalid">
-        Passwords do not match.
-      </div>
+      <div class="invalid-feedback" id="confirm-error" *ngIf="confirmInvalid">Passwords don't match.</div>
     </div>
 
-    <button type="submit" class="btn auth-submit-btn text-white w-100 mt-2" [disabled]="submitting()">
-      Create Account
+    <button type="submit" class="btn btn-primary-role btn-lg w-100 mt-1" [disabled]="submitting()">
+      <span class="spinner-inline" *ngIf="submitting()" aria-hidden="true"></span>
+      {{ submitting() ? 'Creating account' : 'Create account' }}
     </button>
   </form>
 
-  <div class="auth-divider">or sign up with</div>
-
-  <div class="d-flex gap-2">
-    <button type="button" class="social-btn google flex-fill" (click)="continueWith('google')">
-      <i class="bi bi-google"></i> Google
-    </button>
-    <button type="button" class="social-btn facebook flex-fill" (click)="continueWith('facebook')">
-      <i class="bi bi-facebook"></i> Facebook
-    </button>
-  </div>
-
-  <p class="text-center text-muted small mt-4 mb-0">
-    Already have an account?
-    <a [routerLink]="['/login', role]" class="fw-semibold text-decoration-none">Sign in</a>
-  </p>
+  <p class="auth-switch">Already have an account? <a routerLink="/login">Sign in</a></p>
 </app-auth-shell>

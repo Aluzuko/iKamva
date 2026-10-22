@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthShell } from '../../components/auth-shell/auth-shell';
-import { ROLE_OPTIONS, UserRole } from '../../models/user-role.model';
 import { AuthApiService } from '../../services/auth-api.service';
 
 @Component({
@@ -13,41 +13,24 @@ import { AuthApiService } from '../../services/auth-api.service';
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
-export class Login implements OnInit {
-  role: UserRole = UserRole.Student;
-  justRegistered = false;
+export class Login {
   readonly form: FormGroup;
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
   constructor(
     private readonly fb: FormBuilder,
-    private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly authApi: AuthApiService
   ) {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
+      password: ['', [Validators.required]],
     });
   }
 
-  ngOnInit(): void {
-    this.role = (this.route.snapshot.paramMap.get('role') as UserRole) ?? UserRole.Student;
-    this.justRegistered = this.route.snapshot.queryParamMap.get('registered') === '1';
-  }
-
-  get roleLabel(): string {
-    return ROLE_OPTIONS.find((r) => r.role === this.role)?.label ?? 'iKamva';
-  }
-
-  get emailInvalid(): boolean {
-    const c = this.form.get('email');
-    return !!c && c.invalid && (c.dirty || c.touched);
-  }
-
-  get passwordInvalid(): boolean {
-    const c = this.form.get('password');
+  invalid(name: 'email' | 'password'): boolean {
+    const c = this.form.get(name);
     return !!c && c.invalid && (c.dirty || c.touched);
   }
 
@@ -61,19 +44,29 @@ export class Login implements OnInit {
     this.errorMessage.set(null);
     const { email, password } = this.form.getRawValue();
 
-    this.authApi.login({ email, password }).subscribe({
+    this.authApi.login({ email: email.trim(), password }).subscribe({
       next: (response) => {
         this.submitting.set(false);
         this.router.navigate(['/', response.user.role, 'dashboard']);
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         this.submitting.set(false);
-        this.errorMessage.set('Invalid email or password.');
+        this.form.get('password')?.reset();
+        this.errorMessage.set(this.messageFor(err));
       },
     });
   }
 
-  continueWith(provider: 'google' | 'facebook'): void {
-    this.router.navigate(['/', this.role, 'dashboard']);
+  private messageFor(err: HttpErrorResponse): string {
+    switch (err.status) {
+      case 401:
+        return 'The email or password is incorrect.';
+      case 429:
+        return 'Too many sign-in attempts. Wait a minute and try again.';
+      case 0:
+        return "We couldn't reach the server. Check your connection and try again.";
+      default:
+        return 'Something went wrong while signing in. Try again.';
+    }
   }
 }

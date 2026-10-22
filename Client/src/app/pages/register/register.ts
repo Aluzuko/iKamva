@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, signal } from '@angular/core';
 import {
   AbstractControl,
@@ -11,16 +12,16 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthShell } from '../../components/auth-shell/auth-shell';
-import { ROLE_OPTIONS, UserRole } from '../../models/user-role.model';
+import { SIGNUP_ROLES, UserRole } from '../../models/user-role.model';
 import { AuthApiService } from '../../services/auth-api.service';
+
+const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
 function passwordsMatchValidator(): ValidatorFn {
   return (group: AbstractControl): ValidationErrors | null => {
     const password = group.get('password')?.value;
     const confirmPassword = group.get('confirmPassword')?.value;
-    return password && confirmPassword && password !== confirmPassword
-      ? { passwordMismatch: true }
-      : null;
+    return password && confirmPassword && password !== confirmPassword ? { passwordMismatch: true } : null;
   };
 }
 
@@ -32,10 +33,11 @@ function passwordsMatchValidator(): ValidatorFn {
   styleUrl: './register.scss',
 })
 export class Register implements OnInit {
-  role: UserRole = UserRole.Student;
+  readonly roles = SIGNUP_ROLES;
   readonly form: FormGroup;
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly emailTaken = signal(false);
 
   constructor(
     private readonly fb: FormBuilder,
@@ -45,9 +47,10 @@ export class Register implements OnInit {
   ) {
     this.form = this.fb.group(
       {
-        fullName: ['', [Validators.required, Validators.minLength(2)]],
+        role: [UserRole.Student, [Validators.required]],
+        fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]],
         email: ['', [Validators.required, Validators.email]],
-        password: ['', [Validators.required, Validators.minLength(6)]],
+        password: ['', [Validators.required, Validators.pattern(PASSWORD_PATTERN)]],
         confirmPassword: ['', [Validators.required]],
       },
       { validators: passwordsMatchValidator() }
@@ -55,19 +58,20 @@ export class Register implements OnInit {
   }
 
   ngOnInit(): void {
-    this.role = (this.route.snapshot.paramMap.get('role') as UserRole) ?? UserRole.Student;
+    const fromUrl = this.route.snapshot.paramMap.get('role') as UserRole | null;
+    if (fromUrl && this.roles.some((r) => r.role === fromUrl)) {
+      this.form.patchValue({ role: fromUrl });
+    }
+
+    this.form.get('email')?.valueChanges.subscribe(() => this.emailTaken.set(false));
   }
 
-  get roleLabel(): string {
-    return ROLE_OPTIONS.find((r) => r.role === this.role)?.label ?? 'iKamva';
-  }
-
-  fieldInvalid(name: 'fullName' | 'email' | 'password'): boolean {
+  invalid(name: 'fullName' | 'email' | 'password'): boolean {
     const c = this.form.get(name);
     return !!c && c.invalid && (c.dirty || c.touched);
   }
 
-  get confirmPasswordInvalid(): boolean {
+  get confirmInvalid(): boolean {
     const c = this.form.get('confirmPassword');
     const touched = !!c && (c.dirty || c.touched);
     return touched && (c!.invalid || this.form.hasError('passwordMismatch'));
@@ -81,23 +85,37 @@ export class Register implements OnInit {
 
     this.submitting.set(true);
     this.errorMessage.set(null);
-    const { fullName, email, password } = this.form.getRawValue();
+    this.emailTaken.set(false);
+    const { fullName, email, password, role } = this.form.getRawValue();
 
-    this.authApi.register({ fullName, email, password, role: this.role }).subscribe({
-      next: () => {
+    this.authApi.register({ fullName: fullName.trim(), email: email.trim(), password, role }).subscribe({
+      next: (response) => {
         this.submitting.set(false);
-        this.router.navigate(['/login', this.role], { queryParams: { registered: '1' } });
+        this.router.navigate(['/', response.user.role, 'dashboard']);
       },
-      error: (err) => {
+      error: (err: HttpErrorResponse) => {
         this.submitting.set(false);
-        this.errorMessage.set(
-          err.status === 409 ? 'An account with this email already exists.' : 'Something went wrong. Try again.'
-        );
+        if (err.status === 409) {
+          this.emailTaken.set(true);
+          return;
+        }
+        this.errorMessage.set(this.messageFor(err));
       },
     });
   }
 
-  continueWith(provider: 'google' | 'facebook'): void {
-    this.router.navigate(['/', this.role, 'dashboard']);
+  private messageFor(err: HttpErrorResponse): string {
+    switch (err.status) {
+      case 400:
+        return 'Some details need fixing. Check the fields and try again.';
+      case 403:
+        return "That account type can't be created here.";
+      case 429:
+        return 'Too many attempts. Wait a minute and try again.';
+      case 0:
+        return "We couldn't reach the server. Check your connection and try again.";
+      default:
+        return 'Something went wrong while creating your account. Try again.';
+    }
   }
 }

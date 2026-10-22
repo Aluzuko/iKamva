@@ -1,72 +1,48 @@
-<app-auth-shell [role]="role" title="Welcome back" [subtitle]="'Sign in to your ' + roleLabel + ' account'">
-  <div class="auth-alert-success mb-3" *ngIf="justRegistered">
-    <i class="bi bi-check-circle me-1"></i>Account created — sign in to continue.
-  </div>
+<app-auth-shell title="Sign in" subtitle="Use the email address and password for your account.">
+  <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="notice notice-error" role="alert" *ngIf="errorMessage()">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+      <span>{{ errorMessage() }}</span>
+    </div>
 
-  <div class="alert alert-danger py-2 small mb-3" *ngIf="errorMessage()">
-    {{ errorMessage() }}
-  </div>
-
-  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-    <div class="mb-3">
-      <label for="email" class="auth-form-label">Email</label>
+    <div>
+      <label for="email" class="form-label">Email address</label>
       <input
         id="email"
         type="email"
         class="form-control"
-        [class.is-invalid]="emailInvalid"
+        [class.is-invalid]="invalid('email')"
         formControlName="email"
-        placeholder="you@example.com"
         autocomplete="username"
+        aria-describedby="email-error"
       />
-      <div class="invalid-feedback" *ngIf="emailInvalid">
-        Enter a valid email address.
+      <div class="invalid-feedback" id="email-error" *ngIf="invalid('email')">
+        Enter an email address like name&#64;example.com.
       </div>
     </div>
 
-    <div class="mb-2">
-      <div class="d-flex justify-content-between align-items-center">
-        <label for="password" class="auth-form-label mb-0">Password</label>
-        <a
-          class="small text-decoration-none"
-          [routerLink]="['/forgot-password']"
-          [queryParams]="{ role: role }"
-        >
-          Forgot password?
-        </a>
+    <div>
+      <div class="d-flex justify-content-between align-items-baseline">
+        <label for="password" class="form-label">Password</label>
+        <a class="link-quiet" routerLink="/forgot-password">Forgot password?</a>
       </div>
       <input
         id="password"
         type="password"
         class="form-control"
-        [class.is-invalid]="passwordInvalid"
+        [class.is-invalid]="invalid('password')"
         formControlName="password"
-        placeholder="••••••••"
         autocomplete="current-password"
+        aria-describedby="password-error"
       />
-      <div class="invalid-feedback" *ngIf="passwordInvalid">
-        Password must be at least 6 characters.
-      </div>
+      <div class="invalid-feedback" id="password-error" *ngIf="invalid('password')">Enter your password.</div>
     </div>
 
-    <button type="submit" class="btn auth-submit-btn text-white w-100 mt-3" [disabled]="submitting()">
-      Sign In
+    <button type="submit" class="btn btn-primary-role btn-lg w-100 mt-1" [disabled]="submitting()">
+      <span class="spinner-inline" *ngIf="submitting()" aria-hidden="true"></span>
+      {{ submitting() ? 'Signing in' : 'Sign in' }}
     </button>
   </form>
 
-  <div class="auth-divider">or continue with</div>
-
-  <div class="d-flex gap-2">
-    <button type="button" class="social-btn google flex-fill" (click)="continueWith('google')">
-      <i class="bi bi-google"></i> Google
-    </button>
-    <button type="button" class="social-btn facebook flex-fill" (click)="continueWith('facebook')">
-      <i class="bi bi-facebook"></i> Facebook
-    </button>
-  </div>
-
-  <p class="text-center text-muted small mt-4 mb-0">
-    Don't have an account?
-    <a [routerLink]="['/register', role]" class="fw-semibold text-decoration-none">Create one</a>
-  </p>
+  <p class="auth-switch">New to iKamva? <a routerLink="/register">Create an account</a></p>
 </app-auth-shell>

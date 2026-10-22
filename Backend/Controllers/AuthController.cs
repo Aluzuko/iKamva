@@ -7,6 +7,7 @@ using Backend.Infrastructure.Data;
 using Backend.Models.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Controllers;
@@ -32,15 +33,16 @@ public class AuthController : ControllerBase
         _sessions = sessions;
     }
 
+    [EnableRateLimiting("AuthEndpoints")]
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request, CancellationToken ct)
     {
-        var email = request.Email.Trim().ToLowerInvariant();
-
         if (request.Role == UserRole.Admin)
         {
-            return StatusCode(403, new { message = "Admin accounts cannot be self-registered." });
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Admin accounts cannot be self-registered." });
         }
+
+        var email = request.Email.Trim().ToLowerInvariant();
 
         var exists = await _db.Users.AnyAsync(u => u.Email == email, ct);
         if (exists)
@@ -85,6 +87,7 @@ public class AuthController : ControllerBase
         return await IssueAuthResponseAsync(user, ct);
     }
 
+    [EnableRateLimiting("AuthEndpoints")]
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request, CancellationToken ct)
     {

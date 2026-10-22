@@ -11,7 +11,7 @@ export const authGuard: CanActivateFn = () => {
     return true;
   }
 
-  return router.createUrlTree(['/role-select']);
+  return router.createUrlTree(['/login']);
 };
 
 export const roleGuard: CanActivateFn = (route) => {
@@ -21,9 +21,25 @@ export const roleGuard: CanActivateFn = (route) => {
   const requiredRole = route.data['role'] as UserRole;
   const user = tokenStorage.currentUser;
 
-  if (user && user.role === requiredRole) {
+  if (!user) {
+    return router.createUrlTree(['/login']);
+  }
+
+  if (user.role === requiredRole) {
     return true;
   }
 
-  return router.createUrlTree(['/role-select']);
+  return router.createUrlTree(['/', user.role, 'dashboard']);
+};
+
+export const guestGuard: CanActivateFn = () => {
+  const tokenStorage = inject(TokenStorageService);
+  const router = inject(Router);
+  const user = tokenStorage.currentUser;
+
+  if (tokenStorage.isAuthenticated && user) {
+    return router.createUrlTree(['/', user.role, 'dashboard']);
+  }
+
+  return true;
 };
