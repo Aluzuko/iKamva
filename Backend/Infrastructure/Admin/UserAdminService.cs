@@ -1,4 +1,5 @@
 using Backend.Domain.Enums;
+using Backend.Infrastructure.Auth;
 using Backend.Infrastructure.Data;
 using Backend.Models.Admin;
 using Microsoft.EntityFrameworkCore;
@@ -15,10 +16,12 @@ public interface IUserAdminService
 public class UserAdminService : IUserAdminService
 {
     private readonly AppDbContext _db;
+    private readonly IUserSessionService _sessions;
 
-    public UserAdminService(AppDbContext db)
+    public UserAdminService(AppDbContext db, IUserSessionService sessions)
     {
         _db = db;
+        _sessions = sessions;
     }
 
     public async Task<IReadOnlyList<UserAccountDto>> GetUsersAsync(UserRole? role, CancellationToken ct = default)
@@ -47,7 +50,7 @@ public class UserAdminService : IUserAdminService
     public async Task<bool> SetActiveAsync(Guid userId, bool isActive, CancellationToken ct = default)
     {
         var user = await _db.Users.FindAsync([userId], ct);
-        if (user is null)
+        if (user is null || user.Role == UserRole.Admin)
         {
             return false;
         }
@@ -55,6 +58,12 @@ public class UserAdminService : IUserAdminService
         user.IsActive = isActive;
         user.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
+
+        if (!isActive)
+        {
+            await _sessions.RevokeAllSessionsAsync(user.Id, "Account suspended", ct);
+        }
+
         return true;
     }
 }
