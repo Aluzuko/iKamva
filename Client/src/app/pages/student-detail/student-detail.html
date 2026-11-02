@@ -1,74 +1,44 @@
-<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
+<app-page-header
+  [title]="student()?.fullName ?? 'Student'"
+  [subtitle]="subtitle"
+  backLink="/parent/children"
+  backLabel="My Children"
+></app-page-header>
 
-<div *ngIf="!loading() && student() as data">
-  <div class="d-flex justify-content-between align-items-start mb-4">
-    <div>
-      <h1 class="page-title">{{ data.fullName }}</h1>
-      <p class="page-subtitle">
-        {{ data.yearLevel }} · {{ data.enrolledSubjects.join(', ') }}
-      </p>
-    </div>
-    <a routerLink="/parent/children" class="btn btn-link text-decoration-none">
-      <i class="bi bi-arrow-left me-1"></i>Back
-    </a>
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading…</div>
+
+  <div class="empty-block" *ngIf="notFound()">
+    <h3>This student isn't linked to your account</h3>
+    <p>They may have been unlinked, or the link is wrong.</p>
+    <a routerLink="/parent/children" class="btn btn-outline-ink mt-3">Back to My Children</a>
   </div>
 
-  <div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3">
-      <app-stat-card label="Upcoming" [value]="data.upcomingCount.toString()"></app-stat-card>
+  <ng-container *ngIf="!loading() && student() as data">
+    <div class="stats-row">
+      <app-stat-card label="Upcoming" [value]="data.upcomingCount.toString()" icon="bi-calendar-check" tone="slate" hint="Booked lessons"></app-stat-card>
+      <app-stat-card label="Completed" [value]="data.completedCount.toString()" icon="bi-check2-circle" tone="mint" hint="All time"></app-stat-card>
+      <app-stat-card label="Subjects" [value]="data.enrolledSubjects.length.toString()" icon="bi-book" tone="teal" hint="Enrolled"></app-stat-card>
+      <app-stat-card label="Avg. rating" [value]="data.avgRating ? data.avgRating.toFixed(1) : '—'" icon="bi-star" tone="yellow" hint="Given to tutors"></app-stat-card>
     </div>
-    <div class="col-6 col-lg-3">
-      <app-stat-card label="Completed" [value]="data.completedCount.toString()"></app-stat-card>
-    </div>
-    <div class="col-6 col-lg-3">
-      <app-stat-card label="Subjects" [value]="data.enrolledSubjects.length.toString()"></app-stat-card>
-    </div>
-    <div class="col-6 col-lg-3">
-      <app-stat-card label="Avg. Rating" [value]="data.avgRating ? data.avgRating.toFixed(1) : '—'"></app-stat-card>
-    </div>
-  </div>
 
-  <div class="row g-3 mb-4">
-    <div class="col-12 col-lg-5">
-      <div class="panel h-100">
-        <div class="d-flex align-items-center gap-3 mb-3">
-          <app-avatar [name]="data.fullName" size="lg"></app-avatar>
-          <div>
-            <div class="fw-bold">{{ data.fullName }}</div>
-            <div class="text-muted small">{{ data.yearLevel }}</div>
-          </div>
-        </div>
-
-        <div class="detail-label">Enrolled Subjects</div>
-        <div class="d-flex flex-wrap gap-2 mb-3">
-          <app-subject-badge *ngFor="let subject of data.enrolledSubjects" [name]="subject"></app-subject-badge>
-        </div>
-
-        <div class="detail-label">Account Status</div>
-        <app-status-badge [text]="data.isActive ? 'Active' : 'Inactive'" [variant]="data.isActive ? 'success' : 'neutral'"></app-status-badge>
+    <section *ngIf="data.enrolledSubjects.length">
+      <h2 class="section-title">Enrolled subjects</h2>
+      <div class="d-flex flex-wrap gap-2">
+        <app-subject-badge *ngFor="let subject of data.enrolledSubjects" [name]="subject"></app-subject-badge>
       </div>
-    </div>
+    </section>
 
-    <div class="col-12 col-lg-7">
-      <div class="panel h-100">
-        <h2 class="section-title">Upcoming Lessons</h2>
-        <div *ngIf="data.upcomingLessons.length; else noUpcoming">
-          <app-lesson-list-item *ngFor="let lesson of data.upcomingLessons" [lesson]="lesson"></app-lesson-list-item>
-        </div>
-        <ng-template #noUpcoming>
-          <p class="text-muted mb-0">No upcoming lessons.</p>
-        </ng-template>
-      </div>
-    </div>
-  </div>
+    <section class="row-list">
+      <div class="row-list-head"><h2>Upcoming lessons</h2></div>
+      <app-lesson-list-item *ngFor="let lesson of data.upcomingLessons" [lesson]="lesson"></app-lesson-list-item>
+      <p class="row-list-empty mb-0" *ngIf="!data.upcomingLessons.length">No upcoming lessons booked.</p>
+    </section>
 
-  <div class="panel">
-    <h2 class="section-title">Lesson History &amp; Recordings</h2>
-    <div *ngIf="data.lessonHistory.length; else noHistory">
+    <section class="row-list">
+      <div class="row-list-head"><h2>Lesson history and recordings</h2></div>
       <app-lesson-history-item *ngFor="let item of data.lessonHistory" [item]="item"></app-lesson-history-item>
-    </div>
-    <ng-template #noHistory>
-      <p class="text-muted mb-0">No lesson history yet.</p>
-    </ng-template>
-  </div>
+      <p class="row-list-empty mb-0" *ngIf="!data.lessonHistory.length">No lessons yet.</p>
+    </section>
+  </ng-container>
 </div>

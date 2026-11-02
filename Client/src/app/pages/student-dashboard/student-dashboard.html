@@ -1,0 +1,92 @@
+<app-page-header [title]="greeting" [subtitle]="dashboard() ? dashboard()!.upcomingCount + ' upcoming ' + (dashboard()!.upcomingCount === 1 ? 'lesson' : 'lessons') : null">
+  <a routerLink="/student/find-tutor" class="btn btn-primary-role">
+    <i class="bi bi-search" aria-hidden="true"></i><span>Find<span class="long"> a tutor</span></span>
+  </a>
+</app-page-header>
+
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading your dashboard…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load your dashboard. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <ng-container *ngIf="!loading() && dashboard() as d">
+    <div class="notice notice-info" *ngIf="d.lessonsToReview">
+      <i class="bi bi-star" aria-hidden="true"></i>
+      <span>You have {{ d.lessonsToReview }} {{ d.lessonsToReview === 1 ? 'lesson' : 'lessons' }} to rate. <a routerLink="/student/lessons" [queryParams]="{ tab: 'past' }">Rate now</a></span>
+    </div>
+
+    <div class="stats-row">
+      <app-stat-card label="Upcoming" [value]="d.upcomingCount.toString()" icon="bi-calendar-check" tone="slate" hint="Lessons booked"></app-stat-card>
+      <app-stat-card label="Completed" [value]="d.completedCount.toString()" icon="bi-check2-circle" tone="mint" hint="All time"></app-stat-card>
+      <app-stat-card label="This month" [value]="(d.hoursThisMonth | number: '1.0-1') + ' h'" icon="bi-clock" tone="teal" hint="Learning time"></app-stat-card>
+      <app-stat-card label="Subjects" [value]="d.subjects.length.toString()" icon="bi-book" tone="yellow" hint="With completed lessons"></app-stat-card>
+    </div>
+
+    <div class="grid-2-1">
+      <section class="feature-card" aria-label="Next lesson" *ngIf="d.nextLesson as next; else noNext">
+        <div class="feature-main">
+          <div>
+            <span class="feature-tag">{{ startsIn(next) }}</span>
+            <h2>{{ next.subjectName }} with {{ next.tutorName }}</h2>
+            <p class="feature-meta">{{ next.scheduledAt | date: 'EEEE d MMMM · HH:mm' }} · {{ next.durationMinutes }} min</p>
+          </div>
+          <a routerLink="/student/lessons" class="btn btn-amber btn-lg"><i class="bi bi-book" aria-hidden="true"></i>My lessons</a>
+        </div>
+        <div class="feature-foot" *ngIf="d.upcomingLessons.length > 1">
+          <div *ngFor="let l of d.upcomingLessons.slice(1, 4)">
+            <strong>{{ l.subjectName }}</strong>
+            {{ l.scheduledAt | date: 'EEE d MMM · HH:mm' }}
+          </div>
+        </div>
+      </section>
+      <ng-template #noNext>
+        <section class="feature-card" aria-label="Next lesson">
+          <div class="feature-main">
+            <div>
+              <span class="feature-tag">Nothing booked</span>
+              <h2>Book your next lesson</h2>
+              <p class="feature-meta">Browse verified tutors and pick a time that suits you.</p>
+            </div>
+            <a routerLink="/student/find-tutor" class="btn btn-amber btn-lg"><i class="bi bi-search" aria-hidden="true"></i>Find a tutor</a>
+          </div>
+        </section>
+      </ng-template>
+
+      <section class="panel link-panel" aria-labelledby="link-title">
+        <h2 id="link-title">Your parent link code</h2>
+        <p>Give this code to a parent or guardian so they can follow your lessons and pay for them.</p>
+        <div class="code-row">
+          <code>{{ d.linkCode || '—' }}</code>
+          <button type="button" class="btn btn-outline-ink btn-sm" *ngIf="d.linkCode" (click)="copyCode(d.linkCode)">
+            <i class="bi" [ngClass]="copied() ? 'bi-check2' : 'bi-copy'" aria-hidden="true"></i>{{ copied() ? 'Copied' : 'Copy' }}
+          </button>
+          <span class="sr-only" role="status">{{ copied() ? 'Code copied' : '' }}</span>
+        </div>
+        <div class="parents" *ngIf="d.parents.length">
+          <span class="overline">Linked</span>
+          <div class="parent" *ngFor="let p of d.parents">
+            <app-avatar [name]="p.fullName" size="sm"></app-avatar>{{ p.fullName }} <span class="muted">· {{ p.relationship === 'guardian' ? 'Guardian' : 'Parent' }}</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <h2 class="section-title">Your subjects</h2>
+      <ul class="progress-list" *ngIf="d.subjects.length; else noSubjects">
+        <li *ngFor="let s of d.subjects">
+          <div class="p-head">
+            <strong>{{ s.subjectName }}</strong>
+            <span class="muted">{{ s.completedLessons }} {{ s.completedLessons === 1 ? 'lesson' : 'lessons' }} · {{ s.hours | number: '1.0-1' }} h</span>
+          </div>
+          <div class="track" aria-hidden="true"><span [style.width.%]="(s.completedLessons / maxLessons(d)) * 100"></span></div>
+          <span class="muted small" *ngIf="s.lastLessonAt">Last lesson {{ s.lastLessonAt | date: 'd MMM y' }}</span>
+        </li>
+      </ul>
+      <ng-template #noSubjects><p class="muted m-0">Your progress appears here after your first completed lesson.</p></ng-template>
+    </section>
+  </ng-container>
+</div>

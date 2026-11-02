@@ -1,0 +1,83 @@
+<app-page-header title="Billing" subtitle="What your lessons cost and who pays for them"></app-page-header>
+
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading billing…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load your billing. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <ng-container *ngIf="!loading() && billing() as b">
+    <div class="notice notice-info" *ngIf="b.paidByParent; else noPayer">
+      <i class="bi bi-people" aria-hidden="true"></i>
+      <span>Your lessons are billed to <strong>{{ payerNames(b) }}</strong>. You don’t need to pay anything yourself.</span>
+    </div>
+    <ng-template #noPayer>
+      <div class="notice notice-warn">
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+        <span>No parent or guardian is linked to pay for your lessons. Give them your link code <strong>{{ b.linkCode }}</strong> so they can link your account.</span>
+      </div>
+    </ng-template>
+
+    <div class="stats-row">
+      <app-stat-card label="Outstanding" [value]="(b.outstanding | currency: 'ZAR' : 'R' : '1.2-2') ?? ''" icon="bi-hourglass-split" [tone]="b.outstanding ? 'yellow' : 'mint'" [hint]="b.outstanding ? 'Waiting for payment' : 'All paid'"></app-stat-card>
+      <app-stat-card label="This month" [value]="(b.thisMonthTotal | currency: 'ZAR' : 'R' : '1.2-2') ?? ''" icon="bi-calendar-month" tone="slate" hint="Completed lessons"></app-stat-card>
+      <app-stat-card label="Booked ahead" [value]="(b.upcomingTotal | currency: 'ZAR' : 'R' : '1.2-2') ?? ''" icon="bi-calendar-plus" tone="teal" hint="Upcoming lessons"></app-stat-card>
+    </div>
+
+    <section>
+      <h2 class="section-title">{{ today | date: 'MMMM' }} lessons</h2>
+      <div class="data-table-wrap" *ngIf="b.thisMonth.length; else noCharges">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Lesson</th>
+              <th scope="col">Date</th>
+              <th scope="col">Status</th>
+              <th scope="col" class="num">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of b.thisMonth">
+              <td><div class="cell-who"><div><strong>{{ c.subjectName }}</strong><span>{{ c.tutorName }} · {{ c.durationMinutes }} min</span></div></div></td>
+              <td class="text-nowrap">{{ c.scheduledAt | date: 'EEE d MMM, HH:mm' }}</td>
+              <td><app-status-badge [text]="status(c.status).text" [variant]="status(c.status).variant"></app-status-badge></td>
+              <td class="num">{{ c.price | currency: 'ZAR' : 'R' : '1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noCharges>
+        <div class="empty-block"><h3>No lessons this month</h3><p><a routerLink="/student/find-tutor">Find a tutor</a> to book one.</p></div>
+      </ng-template>
+    </section>
+
+    <section>
+      <h2 class="section-title">Invoices</h2>
+      <div class="data-table-wrap" *ngIf="b.invoices.length; else noInvoices">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Period</th>
+              <th scope="col">Paid</th>
+              <th scope="col" class="num">Amount</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let i of b.invoices">
+              <td>{{ i.periodDescription }}</td>
+              <td class="text-nowrap">{{ i.paidAt ? (i.paidAt | date: 'd MMM y') : '—' }}</td>
+              <td class="num">{{ i.amount | currency: 'ZAR' : 'R' : '1.2-2' }}</td>
+              <td><app-status-badge [text]="i.status === 'pending' ? 'Outstanding' : 'Paid'" [variant]="status(i.status).variant"></app-status-badge></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noInvoices>
+        <div class="empty-block"><h3>No invoices yet</h3><p>Invoices are created monthly from your completed lessons.</p></div>
+      </ng-template>
+    </section>
+  </ng-container>
+</div>

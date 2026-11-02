@@ -1,0 +1,158 @@
+<app-page-header title="My Lessons" [subtitle]="loading() ? null : upcoming().length + ' upcoming · ' + toReview() + ' to rate'">
+  <a routerLink="/student/find-tutor" class="btn btn-primary-role">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i><span>Book<span class="long"> a lesson</span></span>
+  </a>
+</app-page-header>
+
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading your lessons…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load your lessons. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <ng-container *ngIf="!loading() && !failed()">
+    <div class="tab-bar" role="tablist" aria-label="Lesson views">
+      <button type="button" role="tab" id="tab-upcoming" aria-controls="lessons-panel" [attr.aria-selected]="tab() === 'upcoming'" (click)="setTab('upcoming')">Upcoming</button>
+      <button type="button" role="tab" id="tab-past" aria-controls="lessons-panel" [attr.aria-selected]="tab() === 'past'" (click)="setTab('past')">
+        Past <span class="count-badge" *ngIf="toReview()">{{ toReview() }}</span>
+      </button>
+    </div>
+
+    <div id="lessons-panel" role="tabpanel" [attr.aria-labelledby]="'tab-' + tab()">
+      <ng-container *ngIf="tab() === 'upcoming'">
+        <ul class="lesson-list" *ngIf="upcoming().length; else noUpcoming">
+          <li class="lesson" *ngFor="let l of upcoming()">
+            <div class="lesson-row">
+              <div class="when">
+                <span class="dow">{{ l.scheduledAt | date: 'EEE' }}</span>
+                <strong>{{ l.scheduledAt | date: 'd' }}</strong>
+                <span class="mon">{{ l.scheduledAt | date: 'MMM' }}</span>
+              </div>
+              <div class="main">
+                <div class="title">{{ l.subjectName }} <app-status-badge text="Upcoming" variant="info"></app-status-badge></div>
+                <div class="meta">{{ l.scheduledAt | date: 'HH:mm' }} · {{ l.durationMinutes }} min · with {{ l.tutorName }}</div>
+              </div>
+              <span class="price">{{ l.price | currency: 'ZAR' : 'R' : '1.2-2' }}</span>
+              <div class="acts">
+                <a class="btn btn-outline-ink btn-sm" routerLink="/student/messages" [queryParams]="{ to: l.tutorId, name: l.tutorName }">
+                  Message<span class="sr-only"> {{ l.tutorName }}</span>
+                </a>
+                <button type="button" class="btn btn-danger-outline btn-sm" *ngIf="l.canCancel" (click)="openCancel(l)">
+                  Cancel<span class="sr-only"> {{ l.subjectName }} on {{ l.scheduledAt | date: 'd MMM' }}</span>
+                </button>
+              </div>
+            </div>
+          </li>
+        </ul>
+        <ng-template #noUpcoming>
+          <div class="empty-block">
+            <h3>No upcoming lessons</h3>
+            <p>Find a tutor and book a time that suits you.</p>
+            <a routerLink="/student/find-tutor" class="btn btn-primary-role mt-3">Find a tutor</a>
+          </div>
+        </ng-template>
+      </ng-container>
+
+      <ng-container *ngIf="tab() === 'past'">
+        <ul class="lesson-list" *ngIf="past().length; else noPast">
+          <li class="lesson" *ngFor="let l of visiblePast()" [class.cancelled]="l.status === 'cancelled'">
+            <div class="lesson-row">
+              <app-avatar [name]="l.tutorName"></app-avatar>
+              <div class="main">
+                <div class="title">{{ l.subjectName }} <app-status-badge [text]="status(l.status).text" [variant]="status(l.status).variant"></app-status-badge></div>
+                <div class="meta">{{ l.scheduledAt | date: 'EEE d MMM y, HH:mm' }} · with {{ l.tutorName }}</div>
+                <div class="meta" *ngIf="l.status === 'cancelled' && l.cancellationReason">Reason: {{ l.cancellationReason }}</div>
+                <div class="mine" *ngIf="l.myRating">
+                  <app-star-rating [rating]="l.myRating"></app-star-rating><span>Your rating</span>
+                </div>
+              </div>
+              <div class="acts">
+                <button type="button" class="btn btn-amber btn-sm" *ngIf="l.canReview" (click)="openReview(l)">
+                  <i class="bi bi-star" aria-hidden="true"></i>Rate<span class="sr-only"> {{ l.subjectName }} on {{ l.scheduledAt | date: 'd MMM' }}</span>
+                </button>
+                <button type="button" class="btn btn-outline-ink btn-sm" *ngIf="l.notes || l.recordingUrl" [attr.aria-expanded]="expanded() === l.bookingId" [attr.aria-controls]="'notes-' + l.bookingId" (click)="toggle(l.bookingId)">
+                  {{ expanded() === l.bookingId ? 'Hide notes' : 'Notes' }}
+                </button>
+              </div>
+            </div>
+            <div class="notes" [id]="'notes-' + l.bookingId" *ngIf="expanded() === l.bookingId">
+              <p *ngIf="l.notes">{{ l.notes }}</p>
+              <a *ngIf="l.recordingUrl" [href]="l.recordingUrl" target="_blank" rel="noopener noreferrer">
+                <i class="bi bi-play-circle" aria-hidden="true"></i> Watch recording<span class="sr-only"> (opens in a new tab)</span>
+              </a>
+            </div>
+          </li>
+        </ul>
+        <app-pager [total]="past().length" [page]="page()" [pageSize]="pageSize" noun="lessons" (pageChange)="page.set($event)"></app-pager>
+        <ng-template #noPast>
+          <div class="empty-block"><h3>No past lessons yet</h3><p>Completed and cancelled lessons show here, with your tutor’s notes.</p></div>
+        </ng-template>
+      </ng-container>
+    </div>
+  </ng-container>
+</div>
+
+<app-dialog *ngIf="cancelTarget() as l" [title]="'Cancel ' + l.subjectName + ' with ' + l.tutorName + '?'" [description]="(l.scheduledAt | date: 'EEEE d MMMM, HH:mm') + '. Your tutor will see your reason.'" (closed)="cancelTarget.set(null)">
+  <form id="s-cancel-form" class="d-flex flex-column gap-3" [formGroup]="cancelForm" (ngSubmit)="confirmCancel()" novalidate>
+    <div class="notice notice-warn" *ngIf="hoursUntil(l) < 24">
+      <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+      <span>This lesson starts in less than 24 hours, so it may still be charged.</span>
+    </div>
+    <div class="notice notice-error" role="alert" *ngIf="dialogError()">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>{{ dialogError() }}</span>
+    </div>
+    <div>
+      <label for="s-cancel-reason" class="form-label">Reason</label>
+      <textarea id="s-cancel-reason" class="form-control" rows="3" formControlName="reason" [class.is-invalid]="reasonInvalid" aria-describedby="s-cancel-error" placeholder="For example: I have a school trip that day"></textarea>
+      <div class="invalid-feedback" id="s-cancel-error" *ngIf="reasonInvalid">Give a reason of at least 5 characters.</div>
+    </div>
+  </form>
+  <ng-container dialog-actions>
+    <button type="button" class="btn btn-outline-ink" (click)="cancelTarget.set(null)">Keep lesson</button>
+    <button type="submit" form="s-cancel-form" class="btn btn-danger-solid" [disabled]="saving()">
+      <span class="spinner-inline" *ngIf="saving()" aria-hidden="true"></span>
+      {{ saving() ? 'Cancelling' : 'Cancel lesson' }}
+    </button>
+  </ng-container>
+</app-dialog>
+
+<app-dialog *ngIf="reviewTarget() as l" [title]="'Rate your lesson with ' + l.tutorName" [description]="l.subjectName + ' · ' + (l.scheduledAt | date: 'd MMMM y')" (closed)="reviewTarget.set(null)">
+  <form id="review-form" class="d-flex flex-column gap-3" [formGroup]="reviewForm" (ngSubmit)="submitReview()" novalidate>
+    <div class="notice notice-error" role="alert" *ngIf="dialogError()">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>{{ dialogError() }}</span>
+    </div>
+    <div>
+      <span class="form-label d-block" id="stars-label">How was it?</span>
+      <div class="star-input" role="radiogroup" aria-labelledby="stars-label" (mouseleave)="hoverRating.set(0)">
+        <button
+          type="button"
+          *ngFor="let n of [1, 2, 3, 4, 5]"
+          role="radio"
+          [attr.aria-checked]="rating() === n"
+          [attr.aria-label]="n + (n === 1 ? ' star, ' : ' stars, ') + ratingWords[n]"
+          [attr.tabindex]="(rating() || 1) === n ? 0 : -1"
+          (click)="rating.set(n)"
+          (mouseenter)="hoverRating.set(n)"
+          (keydown)="onStarKey($event)"
+        >
+          <i class="bi" [ngClass]="(hoverRating() || rating()) >= n ? 'bi-star-fill' : 'bi-star'" aria-hidden="true"></i>
+        </button>
+        <span class="word" aria-hidden="true">{{ ratingWords[hoverRating() || rating()] }}</span>
+      </div>
+    </div>
+    <div>
+      <label for="review-comment" class="form-label">Comment <span class="text-muted fw-normal">(optional)</span></label>
+      <textarea id="review-comment" class="form-control" rows="3" formControlName="comment" placeholder="What did your tutor do well? What could be better?"></textarea>
+      <div class="form-text">{{ (reviewForm.get('comment')?.value || '').length }}/1000 · Shown on the tutor’s profile with your first name.</div>
+    </div>
+  </form>
+  <ng-container dialog-actions>
+    <button type="button" class="btn btn-outline-ink" (click)="reviewTarget.set(null)">Cancel</button>
+    <button type="submit" form="review-form" class="btn btn-primary-role" [disabled]="saving()">
+      <span class="spinner-inline" *ngIf="saving()" aria-hidden="true"></span>
+      {{ saving() ? 'Saving' : 'Submit rating' }}
+    </button>
+  </ng-container>
+</app-dialog>

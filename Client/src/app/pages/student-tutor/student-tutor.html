@@ -1,0 +1,149 @@
+<app-page-header [title]="tutor()?.fullName || 'Tutor'" [subtitle]="tutor() ? tutor()!.yearsExperience + ' years teaching · ' + tutor()!.completedLessons + ' lessons on iKamva' : null" [backLink]="['/student/find-tutor']" backLabel="Find a Tutor">
+  <a *ngIf="tutor() as t" class="btn btn-outline-ink" routerLink="/student/messages" [queryParams]="{ to: t.tutorId, name: t.fullName }">
+    <i class="bi bi-chat-left" aria-hidden="true"></i><span>Message</span>
+  </a>
+</app-page-header>
+
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading tutor…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load this tutor. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <div class="empty-block" *ngIf="notFound()">
+    <h3>This tutor isn’t available</h3>
+    <p>They may no longer be taking bookings.</p>
+    <a routerLink="/student/find-tutor" class="btn btn-primary-role mt-3">Find another tutor</a>
+  </div>
+
+  <div class="layout" *ngIf="!loading() && tutor() as t">
+    <div class="main-col">
+      <section class="panel intro">
+        <app-avatar [name]="t.fullName" size="lg"></app-avatar>
+        <div class="intro-text">
+          <div class="rating" *ngIf="t.averageRating !== null; else newTutor">
+            <app-star-rating [rating]="t.averageRating"></app-star-rating>
+            <strong>{{ t.averageRating | number: '1.1-1' }}</strong> from {{ t.reviewCount }} {{ t.reviewCount === 1 ? 'review' : 'reviews' }}
+          </div>
+          <ng-template #newTutor><div class="rating muted">New tutor, no reviews yet</div></ng-template>
+          <div class="pills">
+            <span class="subject-pill" *ngFor="let s of t.subjects">{{ s.name }}</span>
+          </div>
+          <p class="rate"><strong>{{ t.hourlyRate | currency: 'ZAR' : 'R' : '1.0-0' }}</strong> per hour</p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="section-title">About</h2>
+        <p class="bio">{{ t.bio || t.fullName + ' hasn’t written a bio yet.' }}</p>
+      </section>
+
+      <section class="panel">
+        <h2 class="section-title">Weekly hours <span class="tz">SAST</span></h2>
+        <dl class="weekly" *ngIf="weekly().length; else noHours">
+          <div *ngFor="let d of weekly()"><dt>{{ d.day }}</dt><dd>{{ d.hours.join(', ') }}</dd></div>
+        </dl>
+        <ng-template #noHours><p class="muted m-0">No regular hours set.</p></ng-template>
+      </section>
+
+      <section class="panel">
+        <h2 class="section-title">Reviews</h2>
+        <ul class="reviews" *ngIf="t.reviews.length; else noReviews">
+          <li *ngFor="let r of t.reviews">
+            <div class="review-head">
+              <strong>{{ r.studentName }}</strong>
+              <app-star-rating [rating]="r.rating"></app-star-rating>
+            </div>
+            <span class="muted small">{{ r.subjectName }} · {{ r.lessonDate | date: 'MMM y' }}</span>
+            <p *ngIf="r.comment">“{{ r.comment }}”</p>
+          </li>
+        </ul>
+        <ng-template #noReviews><p class="muted m-0">No reviews yet.</p></ng-template>
+      </section>
+    </div>
+
+    <aside class="book-col" aria-labelledby="book-title">
+      <section class="panel book">
+        <h2 id="book-title">Book a lesson</h2>
+
+        <div class="notice notice-error" role="alert" *ngIf="bookError()">
+          <i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>{{ bookError() }}</span>
+        </div>
+
+        <fieldset>
+          <legend>Subject</legend>
+          <div class="chips">
+            <button type="button" class="chip" *ngFor="let s of t.subjects" [attr.aria-pressed]="subjectId() === s.subjectId" (click)="subjectId.set(s.subjectId)">{{ s.name }}</button>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Length</legend>
+          <div class="durations">
+            <button type="button" class="dur" *ngFor="let d of durations" [attr.aria-pressed]="duration() === d" (click)="setDuration(d)">
+              <strong>{{ d }} min</strong>
+              <span>{{ priceFor(d) | currency: 'ZAR' : 'R' : '1.0-2' }}</span>
+            </button>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Day</legend>
+          <div class="loading-block small" role="status" *ngIf="slotsLoading() && !slots()">Checking availability…</div>
+          <p class="muted" *ngIf="slotsFailed()">We couldn’t load times. <button type="button" class="link-btn" (click)="loadSlots()">Try again</button></p>
+          <div class="days" *ngIf="slots() as s" [class.stale]="slotsLoading()" role="group" aria-label="Choose a day">
+            <button type="button" class="day" *ngFor="let d of s.days" [disabled]="!d.starts.length" [attr.aria-pressed]="selectedDate() === d.date" (click)="selectDate(d.date)">
+              <span class="dow">{{ dayDate(d.date) | date: 'EEE' }}</span>
+              <strong>{{ dayDate(d.date) | date: 'd' }}</strong>
+              <span class="mon">{{ dayDate(d.date) | date: 'MMM' }}</span>
+            </button>
+          </div>
+        </fieldset>
+
+        <fieldset *ngIf="slots()">
+          <legend>Time <span class="tz">SAST</span></legend>
+          <div class="times" *ngIf="selectedDay()?.starts?.length; else noTimes" role="group" aria-label="Choose a start time">
+            <button type="button" class="time" *ngFor="let start of selectedDay()!.starts" [attr.aria-pressed]="selectedStart() === start" (click)="selectedStart.set(start)">
+              {{ start | date: 'HH:mm' : tz }}
+            </button>
+          </div>
+          <ng-template #noTimes>
+            <p class="muted m-0">{{ slots()!.days.some(d => d.starts.length) ? 'Pick a day to see times.' : 'No free times in the next two weeks. Try a shorter lesson or message the tutor.' }}</p>
+          </ng-template>
+        </fieldset>
+
+        <div class="summary" *ngIf="selectedStart() as start">
+          <span>{{ start | date: 'EEEE d MMMM, HH:mm' : tz }} · {{ duration() }} min</span>
+          <strong>{{ price() | currency: 'ZAR' : 'R' : '1.2-2' }}</strong>
+        </div>
+
+        <button type="button" class="btn btn-amber btn-lg w-100" [disabled]="!canBook() || booking()" (click)="openConfirm()">
+          {{ !subjectId() ? 'Choose a subject' : !selectedStart() ? 'Choose a time' : 'Book lesson' }}
+        </button>
+        <p class="fine">Free to cancel more than 24 hours before the lesson. Lessons are billed monthly.</p>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<app-dialog
+  *ngIf="confirmOpen() && tutor() as t"
+  title="Confirm your lesson"
+  [description]="subjectName() + ' with ' + t.fullName"
+  (closed)="confirmOpen.set(false)"
+>
+  <dl class="confirm-list">
+    <div><dt>When</dt><dd>{{ selectedStart() | date: 'EEEE d MMMM y, HH:mm' : tz }} (SAST)</dd></div>
+    <div><dt>Length</dt><dd>{{ duration() }} minutes</dd></div>
+    <div><dt>Price</dt><dd>{{ price() | currency: 'ZAR' : 'R' : '1.2-2' }}</dd></div>
+  </dl>
+  <ng-container dialog-actions>
+    <button type="button" class="btn btn-outline-ink" (click)="confirmOpen.set(false)">Back</button>
+    <button type="button" class="btn btn-amber" [disabled]="booking()" (click)="confirm()">
+      <span class="spinner-inline" *ngIf="booking()" aria-hidden="true"></span>
+      {{ booking() ? 'Booking' : 'Confirm booking' }}
+    </button>
+  </ng-container>
+</app-dialog>
