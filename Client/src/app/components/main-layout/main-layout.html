@@ -1,9 +1,20 @@
-<div class="app-shell-inner d-flex">
-  <app-sidebar [role]="role" [collapsed]="sidebarCollapsed()"></app-sidebar>
-  <div class="app-main flex-grow-1 d-flex flex-column">
-    <app-topbar [role]="role" (toggleSidebar)="toggleSidebar()"></app-topbar>
-    <main class="app-content flex-grow-1">
+<a class="sr-only" href="#main-content">Skip to content</a>
+<div class="app-shell">
+  <app-sidebar [role]="role"></app-sidebar>
+  <div class="shell-main">
+    <header class="mobile-top">
+      <a class="brand-link" [routerLink]="['/', role, 'dashboard']">
+        <span class="brand-mark"><i class="bi bi-book" aria-hidden="true"></i></span>
+        <span>iKamva</span>
+      </a>
+      <div class="right">
+        <span class="role-tag">{{ roleName }}</span>
+        <app-topbar [role]="role" variant="avatar"></app-topbar>
+      </div>
+    </header>
+    <main class="shell-content" id="main-content" tabindex="-1">
       <router-outlet></router-outlet>
     </main>
   </div>
 </div>
+<app-mobile-nav [role]="role"></app-mobile-nav>

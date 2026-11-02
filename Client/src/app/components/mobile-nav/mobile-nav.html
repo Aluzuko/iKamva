@@ -1,0 +1,37 @@
+<div class="more-sheet" id="more-sheet" *ngIf="moreOpen()">
+  <a
+    *ngFor="let item of overflow"
+    [routerLink]="['/', role, item.route]"
+    routerLinkActive="active"
+    ariaCurrentWhenActive="page"
+  >
+    <i class="bi" [ngClass]="item.icon" aria-hidden="true"></i>{{ item.label }}
+  </a>
+</div>
+
+<nav class="mobile-nav" aria-label="Main navigation">
+  <a
+    *ngFor="let item of tabs"
+    class="m-tab"
+    [routerLink]="['/', role, item.route]"
+    routerLinkActive="active"
+    ariaCurrentWhenActive="page"
+  >
+    <i class="bi" [ngClass]="item.icon" aria-hidden="true"></i>
+    <span class="lbl">{{ shortLabel(item) }}</span>
+    <span class="count-badge" *ngIf="badgeFor(item) as badge">{{ badge }}<span class="sr-only"> unread</span></span>
+  </a>
+  <button
+    *ngIf="overflow.length"
+    type="button"
+    class="m-tab"
+    [class.active]="overflowActive"
+    aria-controls="more-sheet"
+    [attr.aria-expanded]="moreOpen()"
+    (click)="moreOpen.set(!moreOpen())"
+  >
+    <i class="bi bi-three-dots" aria-hidden="true"></i>
+    <span class="lbl">More</span>
+    <span class="count-badge dot" *ngIf="overflowBadge"><span class="sr-only">New messages</span></span>
+  </button>
+</nav>

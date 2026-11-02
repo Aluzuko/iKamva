@@ -1,0 +1,13 @@
+<header class="page-header">
+  <div class="min-w-0">
+    <a class="page-back" *ngIf="backLink" [routerLink]="backLink">
+      <i class="bi bi-chevron-left" aria-hidden="true"></i>{{ backLabel }}
+    </a>
+    <h1>{{ title }}</h1>
+    <p class="page-sub" *ngIf="subtitle">{{ subtitle }}</p>
+  </div>
+  <div class="page-actions">
+    <ng-content></ng-content>
+    <app-topbar [role]="role"></app-topbar>
+  </div>
+</header>
