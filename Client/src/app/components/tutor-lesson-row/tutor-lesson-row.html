@@ -1,0 +1,28 @@
+<div class="row-item">
+  <app-avatar [name]="lesson.studentName"></app-avatar>
+  <div class="main">
+    <div class="title">
+      {{ lesson.studentName }}
+      <app-status-badge [text]="badge.text" [variant]="badge.variant"></app-status-badge>
+    </div>
+    <div class="meta">
+      {{ lesson.subjectName }} · {{ lesson.scheduledAt | date: 'EEE d MMM · HH:mm' }} · {{ lesson.durationMinutes }} min
+    </div>
+    <div class="meta reason" *ngIf="lesson.status === 'cancelled' && lesson.cancellationReason">Reason: {{ lesson.cancellationReason }}</div>
+  </div>
+  <div class="money">
+    <strong>{{ lesson.earning | currency: 'ZAR' : 'R' : '1.2-2' }}</strong>
+    <span>you earn</span>
+  </div>
+  <div class="acts" *ngIf="actions">
+    <button type="button" class="btn btn-primary-role btn-sm" *ngIf="lesson.needsCompletion" [disabled]="busy" (click)="complete.emit(lesson)">
+      Mark completed
+    </button>
+    <button type="button" class="btn btn-danger-outline btn-sm" *ngIf="canCancel" [disabled]="busy" (click)="cancel.emit(lesson)">
+      Cancel<span class="sr-only"> lesson with {{ lesson.studentName }}</span>
+    </button>
+    <a class="btn btn-outline-ink btn-sm" *ngIf="lesson.status === 'completed'" routerLink="/tutor/notes" [queryParams]="{ lesson: lesson.bookingId }">
+      {{ lesson.notes ? 'Edit notes' : 'Add notes' }}
+    </a>
+  </div>
+</div>

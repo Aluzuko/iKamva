@@ -1,0 +1,57 @@
+<article class="review">
+  <header class="review-head">
+    <div class="cell-who">
+      <app-avatar [name]="tutor.fullName" size="lg"></app-avatar>
+      <div>
+        <strong class="review-name">{{ tutor.fullName }}</strong>
+        <span>{{ tutor.email }}</span>
+      </div>
+    </div>
+    <app-status-badge [text]="status(tutor.verificationStatus).text" [variant]="status(tutor.verificationStatus).variant"></app-status-badge>
+  </header>
+
+  <div class="review-body">
+    <dl class="facts">
+      <div><dt>Subjects</dt>
+        <dd>
+          <span class="d-flex flex-wrap gap-1" *ngIf="tutor.subjects.length; else noSubjects">
+            <app-subject-badge *ngFor="let s of tutor.subjects" [name]="s"></app-subject-badge>
+          </span>
+          <ng-template #noSubjects><span class="text-muted">None listed</span></ng-template>
+        </dd>
+      </div>
+      <div><dt>Hourly rate</dt><dd>{{ tutor.hourlyRate | currency: 'ZAR' : 'R' : '1.0-2' }}</dd></div>
+      <div><dt>Experience</dt><dd>{{ tutor.yearsExperience }} {{ tutor.yearsExperience === 1 ? 'year' : 'years' }}</dd></div>
+      <div><dt>Bio</dt><dd>{{ tutor.bio || 'No bio yet.' }}</dd></div>
+      <div *ngIf="tutor.rejectionReason"><dt>Rejection reason</dt><dd>{{ tutor.rejectionReason }}</dd></div>
+    </dl>
+
+    <div class="docs">
+      <span class="overline">Documents</span>
+      <button type="button" class="doc" *ngFor="let d of tutor.documents" (click)="openDocument(d)">
+        <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+        <span>
+          {{ docLabels[d.documentType] || d.documentType }}
+          <small>{{ d.fileName }} · uploaded {{ d.uploadedAt | date: 'MMM d, y' }}</small>
+        </span>
+        <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+        <span class="sr-only">(opens in a new tab)</span>
+      </button>
+      <p class="no-docs" *ngIf="!tutor.documents.length">No documents uploaded.</p>
+    </div>
+  </div>
+
+  <footer class="review-foot">
+    <a *ngIf="showDetailLink" class="link-quiet me-auto" [routerLink]="['/admin/tutors', tutor.tutorId]">View full profile</a>
+    <ng-container *ngIf="tutor.verificationStatus !== 'rejected'">
+      <button type="button" class="btn btn-danger-outline" [disabled]="busy" (click)="reject.emit(tutor)">
+        {{ tutor.verificationStatus === 'approved' ? 'Revoke approval' : 'Reject' }}
+      </button>
+    </ng-container>
+    <ng-container *ngIf="tutor.verificationStatus !== 'approved'">
+      <button type="button" class="btn btn-primary-role" [disabled]="busy" (click)="approve.emit(tutor)">
+        <i class="bi bi-check2" aria-hidden="true"></i>{{ busy ? 'Saving' : 'Approve tutor' }}
+      </button>
+    </ng-container>
+  </footer>
+</article>

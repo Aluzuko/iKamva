@@ -10,5 +10,7 @@ public class VerificationDocument
     public DocumentType DocumentType { get; set; }
     public required string FileName { get; set; }
     public required string FileUrl { get; set; }
+    public string? ContentType { get; set; }
+    public long SizeBytes { get; set; }
     public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
 }

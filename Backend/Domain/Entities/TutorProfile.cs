@@ -11,6 +11,8 @@ public class TutorProfile
     public int YearsExperience { get; set; }
     public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.Pending;
     public string? RejectionReason { get; set; }
+    public DateTime? SubmittedAt { get; set; }
     public ICollection<TutorSubject> Subjects { get; set; } = new List<TutorSubject>();
     public ICollection<VerificationDocument> Documents { get; set; } = new List<VerificationDocument>();
+    public ICollection<TutorAvailabilitySlot> Availability { get; set; } = new List<TutorAvailabilitySlot>();
 }

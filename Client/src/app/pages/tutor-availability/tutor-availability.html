@@ -1,0 +1,60 @@
+<app-page-header title="Availability" subtitle="The weekly hours students can book. Times are South African time (SAST).">
+  <button type="button" class="btn btn-primary-role" [disabled]="saving() || !dirty()" (click)="save()">
+    <span>{{ saving() ? 'Saving' : 'Save' }}<span class="long" *ngIf="!saving()"> changes</span></span>
+  </button>
+</app-page-header>
+
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading your availability…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load your availability. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <ng-container *ngIf="!loading() && !failed()">
+    <div class="notice notice-error" role="alert" *ngIf="saveError()">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>{{ saveError() }}</span>
+    </div>
+
+    <p class="summary">
+      <span><strong>{{ totalHours() | number: '1.0-2' }} hours</strong> a week</span>
+      <span *ngIf="dirty()" class="unsaved">Unsaved changes</span>
+    </p>
+
+    <ul class="week panel panel-flush">
+      <li class="day" *ngFor="let d of order" [class.off]="!week()[d].length" [class.bad]="problems()[d]">
+        <div class="day-name">
+          <label class="switch">
+            <input type="checkbox" role="switch" [checked]="week()[d].length > 0" (change)="toggleDay(d, $any($event.target).checked)" />
+            <span>{{ dayNames[d] }}</span>
+          </label>
+        </div>
+
+        <div class="day-body">
+          <p class="unavailable" *ngIf="!week()[d].length">Unavailable</p>
+
+          <div class="block" *ngFor="let b of week()[d]; let i = index">
+            <label class="sr-only" [for]="'s-' + d + '-' + i">{{ dayNames[d] }} block {{ i + 1 }} start</label>
+            <input [id]="'s-' + d + '-' + i" type="time" step="900" class="form-control" [value]="b.start" (change)="setTime(d, i, 'start', $any($event.target).value)" />
+            <span aria-hidden="true">to</span>
+            <label class="sr-only" [for]="'e-' + d + '-' + i">{{ dayNames[d] }} block {{ i + 1 }} end</label>
+            <input [id]="'e-' + d + '-' + i" type="time" step="900" class="form-control" [value]="b.end" (change)="setTime(d, i, 'end', $any($event.target).value)" />
+            <button type="button" class="icon-btn" (click)="removeBlock(d, i)">
+              <i class="bi bi-x-lg" aria-hidden="true"></i><span class="sr-only">Remove {{ dayNames[d] }} block {{ i + 1 }}</span>
+            </button>
+          </div>
+
+          <p class="day-error" role="alert" *ngIf="problems()[d] as problem">{{ problem }}</p>
+
+          <div class="day-actions" *ngIf="week()[d].length">
+            <button type="button" class="link-btn" (click)="addBlock(d)"><i class="bi bi-plus" aria-hidden="true"></i>Add hours</button>
+            <button type="button" class="link-btn" *ngIf="d >= 1 && d <= 5" (click)="copyToWeekdays(d)">
+              <i class="bi bi-copy" aria-hidden="true"></i>Copy to all weekdays
+            </button>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </ng-container>
+</div>

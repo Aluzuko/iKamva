@@ -1,0 +1,84 @@
+<app-page-header title="Lesson Notes" subtitle="A short summary after each lesson. Students and their parents can read these."></app-page-header>
+
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading lessons…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load your lessons. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <ng-container *ngIf="!loading() && !failed()">
+    <div class="toolbar">
+      <div class="chips" role="group" aria-label="Filter lessons">
+        <button type="button" class="chip" *ngFor="let f of filters" [attr.aria-pressed]="filter() === f.value" (click)="setFilter(f.value)">
+          {{ f.label }} <span class="chip-count">{{ countFor(f.value) }}</span>
+        </button>
+      </div>
+      <div class="search-box">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <label class="sr-only" for="notes-search">Search notes</label>
+        <input id="notes-search" type="search" class="form-control" placeholder="Search student, subject or notes" (input)="onSearch($any($event.target).value)" />
+      </div>
+    </div>
+
+    <ul class="note-list" *ngIf="filtered().length; else none">
+      <li class="note" *ngFor="let l of visible()" [class.missing]="!l.notes">
+        <div class="note-head">
+          <app-avatar [name]="l.studentName" size="sm"></app-avatar>
+          <div class="who">
+            <strong>{{ l.studentName }}</strong>
+            <span>{{ l.subjectName }} · {{ l.scheduledAt | date: 'EEE d MMM y' }}</span>
+          </div>
+          <button type="button" class="btn btn-sm" [ngClass]="l.notes ? 'btn-outline-ink' : 'btn-primary-role'" (click)="open(l)">
+            {{ l.notes ? 'Edit' : 'Write notes' }}<span class="sr-only"> for {{ l.studentName }}, {{ l.scheduledAt | date: 'd MMM' }}</span>
+          </button>
+        </div>
+        <p class="body" *ngIf="l.notes; else empty">{{ l.notes }}</p>
+        <ng-template #empty><p class="body muted">No notes yet.</p></ng-template>
+        <a class="rec" *ngIf="l.recordingUrl" [href]="l.recordingUrl" target="_blank" rel="noopener noreferrer">
+          <i class="bi bi-play-circle" aria-hidden="true"></i>Recording<span class="sr-only"> (opens in a new tab)</span>
+        </a>
+      </li>
+    </ul>
+    <app-pager [total]="filtered().length" [page]="page()" [pageSize]="pageSize" noun="lessons" (pageChange)="page.set($event)"></app-pager>
+
+    <ng-template #none>
+      <div class="empty-block">
+        <h3>{{ !completed().length ? 'No completed lessons yet' : filter() === 'missing' && !search() ? 'All caught up' : 'No lessons match' }}</h3>
+        <p>{{ !completed().length ? 'Once a lesson is marked completed, you can write notes for it here.' : filter() === 'missing' && !search() ? 'Every completed lesson has notes.' : 'Try a different filter or search.' }}</p>
+      </div>
+    </ng-template>
+  </ng-container>
+</div>
+
+<app-dialog
+  *ngIf="editing() as l"
+  [title]="'Notes for ' + l.studentName"
+  [description]="l.subjectName + ' · ' + (l.scheduledAt | date: 'EEE d MMM y, HH:mm')"
+  [wide]="true"
+  (closed)="close()"
+>
+  <form id="notes-form" class="d-flex flex-column gap-3" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <div class="notice notice-error" role="alert" *ngIf="saveError()">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>{{ saveError() }}</span>
+    </div>
+    <div>
+      <label for="n-notes" class="form-label">What you covered</label>
+      <textarea id="n-notes" class="form-control" rows="6" formControlName="notes" [class.is-invalid]="invalid('notes')" aria-describedby="n-notes-help"
+        placeholder="Topics covered, how it went, and anything to practise before next time"></textarea>
+      <div class="form-text" id="n-notes-help" [class.text-danger]="invalid('notes')">
+        {{ invalid('notes') && !(form.get('notes')?.value || '').trim() ? 'Write a few words about the lesson.' : (form.get('notes')?.value || '').length + '/4000 characters' }}
+      </div>
+    </div>
+    <div>
+      <label for="n-url" class="form-label">Recording link <span class="text-muted fw-normal">(optional)</span></label>
+      <input id="n-url" type="url" class="form-control" formControlName="recordingUrl" [class.is-invalid]="invalid('recordingUrl')" placeholder="https://" />
+      <div class="invalid-feedback" *ngIf="invalid('recordingUrl')">Enter a full link starting with https://</div>
+    </div>
+  </form>
+  <ng-container dialog-actions>
+    <button type="button" class="btn btn-outline-ink" (click)="close()">Cancel</button>
+    <button type="submit" form="notes-form" class="btn btn-primary-role" [disabled]="saving()">{{ saving() ? 'Saving' : 'Save notes' }}</button>
+  </ng-container>
+</app-dialog>

@@ -1,0 +1,69 @@
+<app-page-header title="Feedback" subtitle="Ratings and comments students leave after lessons"></app-page-header>
+
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading feedback…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load your feedback. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <ng-container *ngIf="!loading() && data() as d">
+    <div class="empty-block" *ngIf="!d.reviewCount">
+      <h3>No reviews yet</h3>
+      <p>Students can rate a lesson after it’s marked completed. Their reviews appear here.</p>
+    </div>
+
+    <ng-container *ngIf="d.reviewCount">
+      <section class="panel summary">
+        <div class="score">
+          <span class="big">{{ d.averageRating | number: '1.1-1' }}</span>
+          <span class="stars" role="img" [attr.aria-label]="'Average ' + d.averageRating + ' out of 5'">
+            <i *ngFor="let s of starIcons(d.averageRating ?? 0)" class="bi" [ngClass]="s" aria-hidden="true"></i>
+          </span>
+          <span class="count">{{ d.reviewCount }} {{ d.reviewCount === 1 ? 'review' : 'reviews' }}</span>
+        </div>
+
+        <div class="bars" role="group" aria-label="Filter by rating">
+          <button type="button" class="bar-row" *ngFor="let star of scale" [attr.aria-pressed]="stars() === star" (click)="setStars(star)">
+            <span class="bar-label">{{ star }} <i class="bi bi-star-fill" aria-hidden="true"></i><span class="sr-only"> stars</span></span>
+            <span class="track" aria-hidden="true"><span class="fill" [style.width.%]="(countFor(star) / maxCount()) * 100"></span></span>
+            <span class="bar-count">{{ countFor(star) }}</span>
+          </button>
+        </div>
+      </section>
+
+      <div class="toolbar">
+        <div class="chips" role="group" aria-label="Filter reviews">
+          <button type="button" class="chip" [attr.aria-pressed]="stars() === null && !withComments()" (click)="stars.set(null); withComments.set(false); page.set(1)">All</button>
+          <button type="button" class="chip" [attr.aria-pressed]="withComments()" (click)="toggleComments()">With comments</button>
+          <button type="button" class="chip" *ngIf="stars() !== null" aria-pressed="true" (click)="setStars(null)">
+            {{ stars() }} stars <i class="bi bi-x" aria-hidden="true"></i><span class="sr-only">, remove filter</span>
+          </button>
+        </div>
+      </div>
+
+      <ul class="reviews" *ngIf="filtered().length; else none">
+        <li class="review" *ngFor="let r of visible()">
+          <div class="review-head">
+            <app-avatar [name]="r.studentName" size="sm"></app-avatar>
+            <div class="who">
+              <strong>{{ r.studentName }}</strong>
+              <span>{{ r.subjectName }} · lesson on {{ r.lessonDate | date: 'd MMM y' }}</span>
+            </div>
+            <span class="stars small" role="img" [attr.aria-label]="r.rating + ' out of 5'">
+              <i *ngFor="let s of starIcons(r.rating)" class="bi" [ngClass]="s" aria-hidden="true"></i>
+            </span>
+          </div>
+          <p class="comment" *ngIf="r.comment; else noComment">“{{ r.comment }}”</p>
+          <ng-template #noComment><p class="comment muted">No comment left.</p></ng-template>
+        </li>
+      </ul>
+      <app-pager [total]="filtered().length" [page]="page()" [pageSize]="pageSize" noun="reviews" (pageChange)="page.set($event)"></app-pager>
+
+      <ng-template #none>
+        <div class="empty-block"><h3>No reviews match</h3><p>Try a different filter.</p></div>
+      </ng-template>
+    </ng-container>
+  </ng-container>
+</div>

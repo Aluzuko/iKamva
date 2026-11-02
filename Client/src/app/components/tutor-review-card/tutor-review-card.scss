@@ -1,0 +1,127 @@
+:host {
+  display: block;
+}
+
+.review {
+  background: var(--tl-surface);
+  border: 1px solid var(--tl-border);
+  border-radius: var(--tl-radius-lg);
+}
+
+.review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--tl-border);
+}
+
+.review-name {
+  font-size: 0.9375rem;
+}
+
+.review-body {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 1.25rem;
+  padding: 1.125rem 1.25rem;
+}
+
+.facts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.facts > div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.facts dt {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--tl-text-muted);
+}
+
+.facts dd {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.docs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.doc {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--tl-border);
+  border-radius: var(--tl-radius-md);
+  background: #fff;
+  color: var(--tl-text-strong);
+  text-decoration: none;
+}
+
+.doc:hover {
+  border-color: var(--tl-text-muted);
+}
+
+.doc > span {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.doc small {
+  display: block;
+  font-weight: 400;
+  color: var(--tl-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.no-docs {
+  color: var(--tl-text-muted);
+  margin: 0;
+}
+
+.review-foot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0 1.25rem 1.125rem;
+}
+
+@media (max-width: 760px) {
+  .review-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .facts > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.125rem;
+  }
+
+  .review-foot .btn {
+    flex: 1;
+  }
+
+  .review-foot .link-quiet {
+    width: 100%;
+  }
+}

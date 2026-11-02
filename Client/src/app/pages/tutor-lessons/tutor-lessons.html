@@ -1,0 +1,98 @@
+<app-page-header title="Lessons" [subtitle]="loading() ? null : upcoming().length + ' upcoming · ' + toConfirm().length + ' to confirm'"></app-page-header>
+
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading lessons…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load your lessons. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <ng-container *ngIf="!loading() && !failed()">
+    <div class="tab-bar" role="tablist" aria-label="Lesson views">
+      <button type="button" role="tab" id="tab-upcoming" aria-controls="lesson-panel" [attr.aria-selected]="tab() === 'upcoming'" (click)="setTab('upcoming')">
+        Upcoming <span class="count-badge" *ngIf="toConfirm().length">{{ toConfirm().length }}</span>
+      </button>
+      <button type="button" role="tab" id="tab-past" aria-controls="lesson-panel" [attr.aria-selected]="tab() === 'past'" (click)="setTab('past')">Past</button>
+    </div>
+
+    <div id="lesson-panel" role="tabpanel" [attr.aria-labelledby]="'tab-' + tab()" class="d-flex flex-column gap-3">
+      <div class="toolbar">
+        <div class="chips" role="group" aria-label="Filter past lessons" *ngIf="tab() === 'past'">
+          <button type="button" class="chip" *ngFor="let f of pastFilters" [attr.aria-pressed]="pastFilter() === f.value" (click)="setPastFilter(f.value)">
+            {{ f.label }} <span class="chip-count">{{ pastCount(f.value) }}</span>
+          </button>
+        </div>
+        <span *ngIf="tab() === 'upcoming'"></span>
+        <div class="search-box">
+          <i class="bi bi-search" aria-hidden="true"></i>
+          <label class="sr-only" for="lesson-search">Search lessons</label>
+          <input id="lesson-search" type="search" class="form-control" placeholder="Search student or subject" [value]="search()" (input)="onSearch($any($event.target).value)" />
+        </div>
+      </div>
+
+      <ng-container *ngIf="tab() === 'upcoming'">
+        <section class="row-list" *ngIf="toConfirm().length">
+          <div class="row-list-head">
+            <h2>Did these lessons happen?</h2>
+          </div>
+          <app-tutor-lesson-row *ngFor="let l of toConfirm()" [lesson]="l" [busy]="busyId() === l.bookingId" (complete)="complete($event)"></app-tutor-lesson-row>
+        </section>
+
+        <section class="row-list" *ngIf="upcoming().length; else noUpcoming">
+          <div class="row-list-head"><h2>Coming up</h2></div>
+          <app-tutor-lesson-row *ngFor="let l of upcoming()" [lesson]="l" [busy]="busyId() === l.bookingId" (cancel)="openCancel($event)"></app-tutor-lesson-row>
+        </section>
+        <ng-template #noUpcoming>
+          <div class="empty-block">
+            <h3>{{ search() ? 'No lessons match' : 'No upcoming lessons' }}</h3>
+            <p>{{ search() ? 'Try a different search.' : 'Lessons appear here when students book you. Keep your availability up to date so they can.' }}</p>
+          </div>
+        </ng-template>
+      </ng-container>
+
+      <ng-container *ngIf="tab() === 'past'">
+        <section class="row-list" *ngIf="past().length; else noPast">
+          <app-tutor-lesson-row *ngFor="let l of visiblePast()" [lesson]="l"></app-tutor-lesson-row>
+        </section>
+        <app-pager [total]="past().length" [page]="page()" [pageSize]="pageSize" noun="lessons" (pageChange)="page.set($event)"></app-pager>
+        <ng-template #noPast>
+          <div class="empty-block">
+            <h3>{{ lessons().length ? 'No lessons match' : 'No past lessons yet' }}</h3>
+            <p>{{ lessons().length ? 'Try a different filter or search.' : 'Completed and cancelled lessons are listed here.' }}</p>
+          </div>
+        </ng-template>
+      </ng-container>
+    </div>
+  </ng-container>
+</div>
+
+<app-dialog
+  *ngIf="cancelTarget() as l"
+  [title]="'Cancel the lesson with ' + l.studentName + '?'"
+  [description]="l.subjectName + ' on ' + (l.scheduledAt | date: 'EEE d MMM, HH:mm') + '. The student and their parent will see your reason.'"
+  (closed)="cancelTarget.set(null)"
+>
+  <form id="cancel-form" class="d-flex flex-column gap-3" [formGroup]="cancelForm" (ngSubmit)="confirmCancel()" novalidate>
+    <div class="notice notice-warn" *ngIf="hoursUntil(l) < 24">
+      <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+      <span>This lesson starts in less than 24 hours. Late cancellations affect how students see your reliability.</span>
+    </div>
+    <div class="notice notice-error" role="alert" *ngIf="cancelError()">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>{{ cancelError() }}</span>
+    </div>
+    <div>
+      <label for="cancel-reason" class="form-label">Reason</label>
+      <textarea id="cancel-reason" class="form-control" rows="3" formControlName="reason" [class.is-invalid]="reasonInvalid" aria-describedby="cancel-reason-error"
+        placeholder="For example: I’m unwell and can’t teach today"></textarea>
+      <div class="invalid-feedback" id="cancel-reason-error" *ngIf="reasonInvalid">Give a reason of at least 5 characters.</div>
+    </div>
+  </form>
+  <ng-container dialog-actions>
+    <button type="button" class="btn btn-outline-ink" (click)="cancelTarget.set(null)">Keep lesson</button>
+    <button type="submit" form="cancel-form" class="btn btn-danger-solid" [disabled]="busyId() === l.bookingId">
+      <span class="spinner-inline" *ngIf="busyId() === l.bookingId" aria-hidden="true"></span>
+      {{ busyId() === l.bookingId ? 'Cancelling' : 'Cancel lesson' }}
+    </button>
+  </ng-container>
+</app-dialog>

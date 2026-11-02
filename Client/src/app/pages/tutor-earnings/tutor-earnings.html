@@ -1,0 +1,123 @@
+<app-page-header title="Earnings & Payouts" subtitle="What you’ve earned after the platform commission, and what’s been paid to you"></app-page-header>
+
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading earnings…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load your earnings. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <ng-container *ngIf="!loading() && data() as d">
+    <div class="grid-2-1">
+      <section class="feature-card" aria-label="Available balance">
+        <div class="feature-main">
+          <div>
+            <span class="feature-tag">Available to pay out</span>
+            <h2>{{ d.availableBalance | currency: 'ZAR' : 'R' : '1.2-2' }}</h2>
+            <p class="feature-meta">{{ d.canRequestPayout ? 'Our team processes payouts within 3 working days.' : d.payoutBlockedReason }}</p>
+          </div>
+          <button type="button" class="btn btn-amber btn-lg" [disabled]="!d.canRequestPayout" (click)="confirmOpen.set(true)">
+            <i class="bi bi-bank" aria-hidden="true"></i>Request payout
+          </button>
+        </div>
+        <div class="feature-foot" *ngIf="d.pendingPayouts > 0">
+          <div><strong>Being processed</strong> {{ d.pendingPayouts | currency: 'ZAR' : 'R' : '1.2-2' }}</div>
+        </div>
+      </section>
+
+      <div class="d-flex flex-column gap-3">
+        <app-stat-card label="This month" [value]="(d.thisMonth | currency: 'ZAR' : 'R' : '1.0-0') ?? ''" icon="bi-calendar-month" tone="mint"></app-stat-card>
+        <app-stat-card label="Paid out so far" [value]="(d.paidOut | currency: 'ZAR' : 'R' : '1.0-0') ?? ''" icon="bi-bank" tone="slate"
+          [hint]="'Total earned ' + (d.totalEarned | currency: 'ZAR' : 'R' : '1.0-0')"></app-stat-card>
+      </div>
+    </div>
+
+    <section class="panel" *ngIf="hasEarnings(); else noEarnings">
+      <h2 class="section-title">Earnings by month</h2>
+      <app-bar-chart [points]="d.monthly" label="Earnings by month" format="currency"></app-bar-chart>
+    </section>
+    <ng-template #noEarnings>
+      <div class="empty-block">
+        <h3>No earnings yet</h3>
+        <p>You earn when a lesson is marked completed. Your share is the lesson price minus the platform commission.</p>
+      </div>
+    </ng-template>
+
+    <div class="tab-bar" role="tablist" aria-label="Earnings detail">
+      <button type="button" role="tab" id="tab-lessons" aria-controls="earn-panel" [attr.aria-selected]="tab() === 'lessons'" (click)="setTab('lessons')">Lessons</button>
+      <button type="button" role="tab" id="tab-payouts" aria-controls="earn-panel" [attr.aria-selected]="tab() === 'payouts'" (click)="setTab('payouts')">Payouts</button>
+    </div>
+
+    <div id="earn-panel" role="tabpanel" [attr.aria-labelledby]="'tab-' + tab()" class="d-flex flex-column gap-3">
+      <ng-container *ngIf="tab() === 'lessons'">
+        <div class="data-table-wrap" *ngIf="d.recentLessons.length; else noLessons">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th scope="col">Lesson</th>
+                <th scope="col">Date</th>
+                <th scope="col" class="num">Price</th>
+                <th scope="col" class="num">Commission</th>
+                <th scope="col" class="num">You earn</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let l of visibleLessons()">
+                <td><div class="cell-who"><div><strong>{{ l.studentName }}</strong><span>{{ l.subjectName }}</span></div></div></td>
+                <td class="text-nowrap">{{ l.scheduledAt | date: 'd MMM y' }}</td>
+                <td class="num">{{ l.price | currency: 'ZAR' : 'R' : '1.2-2' }}</td>
+                <td class="num">{{ l.commissionPercent | number: '1.0-2' }}%</td>
+                <td class="num"><strong>{{ l.earning | currency: 'ZAR' : 'R' : '1.2-2' }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <app-pager [total]="d.recentLessons.length" [page]="page()" [pageSize]="pageSize" noun="lessons" (pageChange)="page.set($event)"></app-pager>
+        <ng-template #noLessons>
+          <div class="empty-block"><h3>No completed lessons yet</h3><p>Each completed lesson shows here with what you earned from it.</p></div>
+        </ng-template>
+      </ng-container>
+
+      <ng-container *ngIf="tab() === 'payouts'">
+        <div class="data-table-wrap" *ngIf="d.payouts.length; else noPayouts">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th scope="col">Requested</th>
+                <th scope="col">Reference</th>
+                <th scope="col">Paid</th>
+                <th scope="col" class="num">Amount</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of d.payouts">
+                <td class="text-nowrap">{{ p.requestedAt | date: 'd MMM y' }}</td>
+                <td>{{ p.reference || '—' }}</td>
+                <td class="text-nowrap">{{ p.paidAt ? (p.paidAt | date: 'd MMM y') : '—' }}</td>
+                <td class="num">{{ p.amount | currency: 'ZAR' : 'R' : '1.2-2' }}</td>
+                <td><app-status-badge [text]="p.status === 'paid' ? 'Paid' : 'Processing'" [variant]="p.status === 'paid' ? 'success' : 'warning'"></app-status-badge></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #noPayouts>
+          <div class="empty-block"><h3>No payouts yet</h3><p>Request a payout once your balance reaches {{ d.minimumPayout | currency: 'ZAR' : 'R' : '1.0-0' }}.</p></div>
+        </ng-template>
+      </ng-container>
+    </div>
+  </ng-container>
+</div>
+
+<app-dialog
+  *ngIf="confirmOpen() && data() as d"
+  [title]="'Request a payout of ' + money(d.availableBalance) + '?'"
+  description="Your full available balance will be paid out. Our team processes payouts within 3 working days."
+  (closed)="confirmOpen.set(false)"
+>
+  <ng-container dialog-actions>
+    <button type="button" class="btn btn-outline-ink" (click)="confirmOpen.set(false)">Cancel</button>
+    <button type="button" class="btn btn-amber" [disabled]="requesting()" (click)="requestPayout()">{{ requesting() ? 'Requesting' : 'Request payout' }}</button>
+  </ng-container>
+</app-dialog>

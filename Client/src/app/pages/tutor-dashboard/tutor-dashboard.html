@@ -1,0 +1,101 @@
+<app-page-header [title]="greeting" [subtitle]="dashboard() ? dashboard()!.upcomingThisWeek + ' lessons in the next 7 days' : null">
+  <a routerLink="/tutor/availability" class="btn btn-primary-role">
+    <i class="bi bi-calendar-week" aria-hidden="true"></i><span>Edit<span class="long"> availability</span></span>
+  </a>
+</app-page-header>
+
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading your dashboard…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load your dashboard. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <ng-container *ngIf="!loading() && dashboard() as d">
+    <ng-container [ngSwitch]="d.verificationState">
+      <div class="notice notice-info" *ngSwitchCase="'notSubmitted'">
+        <i class="bi bi-patch-question" aria-hidden="true"></i>
+        <span>Students can’t book you until you’re verified. <a routerLink="/tutor/profile">Finish your profile and upload your documents</a>.</span>
+      </div>
+      <div class="notice notice-warn" *ngSwitchCase="'inReview'">
+        <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+        <span>Your documents are being reviewed. We’ll let you know when you’re verified.</span>
+      </div>
+      <div class="notice notice-error" role="alert" *ngSwitchCase="'rejected'">
+        <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+        <span><strong>Changes needed:</strong> {{ d.rejectionReason }} <a routerLink="/tutor/profile">Update your verification</a>.</span>
+      </div>
+    </ng-container>
+
+    <div class="notice notice-info" *ngIf="!d.hasAvailability">
+      <i class="bi bi-calendar-plus" aria-hidden="true"></i>
+      <span>You haven’t set any teaching hours yet. <a routerLink="/tutor/availability">Add your availability</a> so students can book you.</span>
+    </div>
+
+    <div class="stats-row">
+      <app-stat-card
+        label="Earned this month"
+        [value]="(d.earningsThisMonth | currency: 'ZAR' : 'R' : '1.0-0') ?? ''"
+        icon="bi-wallet2"
+        tone="mint"
+        [trend]="{ percent: d.earningsChangePercent, label: 'vs last month' }"
+      ></app-stat-card>
+      <app-stat-card label="Next 7 days" [value]="d.upcomingThisWeek.toString()" icon="bi-calendar-check" tone="slate" hint="Lessons booked"></app-stat-card>
+      <app-stat-card label="Completed" [value]="d.completedThisMonth.toString()" icon="bi-check2-circle" tone="teal" hint="This month"></app-stat-card>
+      <app-stat-card
+        label="Rating"
+        [value]="d.averageRating !== null ? (d.averageRating | number: '1.1-1') + ' / 5' : '—'"
+        icon="bi-star"
+        tone="yellow"
+        [hint]="d.reviewCount + (d.reviewCount === 1 ? ' review' : ' reviews')"
+      ></app-stat-card>
+    </div>
+
+    <div class="grid-2-1">
+      <section class="feature-card" aria-label="Next lesson" *ngIf="d.nextLesson as next; else noNext">
+        <div class="feature-main">
+          <div>
+            <span class="feature-tag">{{ startsIn(next) }}</span>
+            <h2>{{ next.subjectName }} with {{ next.studentName }}</h2>
+            <p class="feature-meta">{{ next.scheduledAt | date: 'EEEE d MMMM · HH:mm' }} · {{ next.durationMinutes }} min</p>
+          </div>
+          <a routerLink="/tutor/lessons" class="btn btn-amber btn-lg"><i class="bi bi-easel" aria-hidden="true"></i>View lessons</a>
+        </div>
+      </section>
+      <ng-template #noNext>
+        <section class="feature-card" aria-label="Next lesson">
+          <div class="feature-main">
+            <div>
+              <span class="feature-tag">Nothing booked</span>
+              <h2>No upcoming lessons</h2>
+              <p class="feature-meta">Keep your availability up to date so students can book you.</p>
+            </div>
+          </div>
+        </section>
+      </ng-template>
+
+      <section class="panel quick-actions">
+        <h2>Needs your attention</h2>
+        <a class="q1" routerLink="/tutor/lessons">
+          <i class="bi bi-check2-square" aria-hidden="true"></i>
+          {{ d.lessonsNeedingCompletion ? d.lessonsNeedingCompletion + ' lesson' + (d.lessonsNeedingCompletion === 1 ? '' : 's') + ' to confirm' : 'No lessons to confirm' }}
+        </a>
+        <a class="q2" routerLink="/tutor/notes">
+          <i class="bi bi-journal-text" aria-hidden="true"></i>
+          {{ d.lessonsNeedingNotes ? d.lessonsNeedingNotes + ' lesson' + (d.lessonsNeedingNotes === 1 ? '' : 's') + ' without notes' : 'All notes written' }}
+        </a>
+        <a class="q3" routerLink="/tutor/earnings"><i class="bi bi-bank" aria-hidden="true"></i>Earnings & payouts</a>
+      </section>
+    </div>
+
+    <section class="row-list">
+      <div class="row-list-head">
+        <h2>Today</h2>
+        <a class="link-quiet" routerLink="/tutor/lessons">All lessons</a>
+      </div>
+      <app-tutor-lesson-row *ngFor="let l of d.todayLessons" [lesson]="l" [busy]="busyId() === l.bookingId" [allowCancel]="false" (complete)="complete($event)"></app-tutor-lesson-row>
+      <p class="row-list-empty mb-0" *ngIf="!d.todayLessons.length">No lessons today.</p>
+    </section>
+  </ng-container>
+</div>

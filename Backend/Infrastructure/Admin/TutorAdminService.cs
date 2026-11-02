@@ -2,6 +2,7 @@ using Backend.Domain.Entities;
 using Backend.Domain.Enums;
 using Backend.Infrastructure.Auth;
 using Backend.Infrastructure.Data;
+using Backend.Infrastructure.Email;
 using Backend.Models.Admin;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,11 +12,34 @@ public class TutorAdminService : ITutorAdminService
 {
     private readonly AppDbContext _db;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IEmailQueue _emails;
+    private readonly IEmailTemplates _templates;
 
-    public TutorAdminService(AppDbContext db, IPasswordHasher passwordHasher)
+    public TutorAdminService(AppDbContext db, IPasswordHasher passwordHasher, IEmailQueue emails, IEmailTemplates templates)
     {
         _db = db;
         _passwordHasher = passwordHasher;
+        _emails = emails;
+        _templates = templates;
+    }
+
+    private async Task StageTutorEmailAsync(Guid tutorId, Func<string, RenderedEmail> render, CancellationToken ct)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == tutorId, ct);
+        if (user is null || !EmailQueue.IsValidAddress(user.Email))
+        {
+            return;
+        }
+        await _emails.StageAsync(new EmailRequest
+        {
+            Category = EmailCategory.TutorVerification,
+            ToEmail = user.Email,
+            ToName = user.FullName,
+            RecipientUserId = user.Id,
+            Content = render(user.FullName),
+            RelatedEntityType = "TutorProfile",
+            RelatedEntityId = tutorId,
+        }, ct);
     }
 
     public async Task<IReadOnlyList<TutorListItemDto>> GetTutorsAsync(CancellationToken ct = default)
@@ -55,7 +79,8 @@ public class TutorAdminService : ITutorAdminService
             .Include(t => t.User)
             .Include(t => t.Subjects).ThenInclude(s => s.Subject)
             .Include(t => t.Documents)
-            .Where(t => t.VerificationStatus == VerificationStatus.Pending)
+            .Where(t => t.VerificationStatus == VerificationStatus.Pending && t.SubmittedAt != null)
+            .OrderBy(t => t.SubmittedAt)
             .ToListAsync(ct);
 
         return pendingProfiles.Select(MapDetail).ToList();
@@ -121,8 +146,13 @@ public class TutorAdminService : ITutorAdminService
             return false;
         }
 
+        var wasApproved = profile.VerificationStatus == VerificationStatus.Approved;
         profile.VerificationStatus = VerificationStatus.Approved;
         profile.RejectionReason = null;
+        if (!wasApproved)
+        {
+            await StageTutorEmailAsync(tutorId, name => _templates.TutorApproved(name), ct);
+        }
         await _db.SaveChangesAsync(ct);
         return true;
     }
@@ -137,6 +167,7 @@ public class TutorAdminService : ITutorAdminService
 
         profile.VerificationStatus = VerificationStatus.Rejected;
         profile.RejectionReason = reason;
+        await StageTutorEmailAsync(tutorId, name => _templates.TutorChangesNeeded(name, reason), ct);
         await _db.SaveChangesAsync(ct);
         return true;
     }
@@ -157,7 +188,9 @@ public class TutorAdminService : ITutorAdminService
             DocumentId = d.Id,
             DocumentType = d.DocumentType,
             FileName = d.FileName,
-            FileUrl = d.FileUrl,
+            FileUrl = d.FileUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                ? d.FileUrl
+                : $"/api/admin/tutors/documents/{d.Id}/file",
             UploadedAt = d.UploadedAt,
         }).ToList(),
     };

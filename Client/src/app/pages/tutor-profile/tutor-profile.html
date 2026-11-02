@@ -1,0 +1,169 @@
+<app-page-header title="Profile & Verification" subtitle="Your teaching details and the documents we check before students can book you">
+  <app-status-badge *ngIf="profile()" [text]="state().text" [variant]="state().variant"></app-status-badge>
+</app-page-header>
+
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading your profile…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load your profile. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <ng-container *ngIf="!loading() && profile() as p">
+    <ng-container [ngSwitch]="p.verificationState">
+      <div class="notice notice-info" *ngSwitchCase="'notSubmitted'">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        <span>Fill in your teaching details, upload three documents, then submit for review. Students can book you once you’re verified.</span>
+      </div>
+      <div class="notice notice-warn" *ngSwitchCase="'inReview'">
+        <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+        <span>Submitted {{ p.submittedAt | date: 'd MMM y' }}. An admin is checking your documents, which usually takes 1–2 working days.</span>
+      </div>
+      <div class="notice notice-error" role="alert" *ngSwitchCase="'rejected'">
+        <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+        <span><strong>Changes needed:</strong> {{ p.rejectionReason || 'Your documents need updating.' }} Fix this below, then submit again.</span>
+      </div>
+      <div class="notice notice-success" *ngSwitchCase="'approved'">
+        <i class="bi bi-patch-check" aria-hidden="true"></i>
+        <span>You’re verified. Students can find and book you.</span>
+      </div>
+    </ng-container>
+
+    <section class="panel step" aria-labelledby="step-profile">
+      <header class="step-head">
+        <span class="step-num" [class.done]="!p.missingForSubmission.includes('hourly rate') && !p.missingForSubmission.includes('at least one subject')" aria-hidden="true">1</span>
+        <div>
+          <h2 id="step-profile">Teaching profile</h2>
+          <p>Students see this when they choose a tutor.</p>
+        </div>
+      </header>
+
+      <form class="d-flex flex-column gap-3" [formGroup]="form" (ngSubmit)="saveProfile()" novalidate>
+        <div class="notice notice-error" role="alert" *ngIf="profileError()">
+          <i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>{{ profileError() }}</span>
+        </div>
+
+        <fieldset>
+          <legend class="form-label">Subjects you teach</legend>
+          <div class="chips" role="group">
+            <button type="button" class="chip" *ngFor="let s of subjects()" [attr.aria-pressed]="isSubjectSelected(s.subjectId)" (click)="toggleSubject(s.subjectId)">
+              {{ s.name }}
+            </button>
+          </div>
+          <div class="form-text text-danger" *ngIf="invalid('subjectIds')">Choose at least one subject.</div>
+        </fieldset>
+
+        <div class="field-row">
+          <div>
+            <label for="p-rate" class="form-label">Hourly rate (R)</label>
+            <input id="p-rate" type="number" min="1" step="1" class="form-control" formControlName="hourlyRate" [class.is-invalid]="invalid('hourlyRate')" aria-describedby="p-rate-help" />
+            <div class="invalid-feedback" *ngIf="invalid('hourlyRate')">Enter a rate between R1 and R10,000.</div>
+            <div class="form-text" id="p-rate-help">The platform commission is taken from this. You’ll see what you earn per lesson under Earnings.</div>
+          </div>
+          <div>
+            <label for="p-years" class="form-label">Years of teaching experience</label>
+            <input id="p-years" type="number" min="0" class="form-control" formControlName="yearsExperience" [class.is-invalid]="invalid('yearsExperience')" />
+            <div class="invalid-feedback" *ngIf="invalid('yearsExperience')">Enter a number between 0 and 80.</div>
+          </div>
+        </div>
+
+        <div>
+          <label for="p-bio" class="form-label">About you <span class="text-muted fw-normal">(optional)</span></label>
+          <textarea id="p-bio" class="form-control" rows="4" formControlName="bio" [class.is-invalid]="invalid('bio')"
+            placeholder="Your background, how you teach, and who you work best with"></textarea>
+          <div class="form-text" [class.text-danger]="invalid('bio')">{{ (form.get('bio')?.value || '').length }}/2000 characters</div>
+        </div>
+
+        <div class="d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary-role" [disabled]="saving() || form.pristine">
+            <span class="spinner-inline" *ngIf="saving()" aria-hidden="true"></span>
+            {{ saving() ? 'Saving' : 'Save profile' }}
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel step" aria-labelledby="step-docs">
+      <header class="step-head">
+        <span class="step-num" [class.done]="p.documents.length === 3" aria-hidden="true">2</span>
+        <div>
+          <h2 id="step-docs">Verification documents</h2>
+          <p>PDF, JPG or PNG, up to 5 MB each. Only you and our admin team can see them.</p>
+        </div>
+      </header>
+
+      <p class="locked" *ngIf="!p.canEditDocuments">
+        <i class="bi bi-lock" aria-hidden="true"></i>
+        {{ p.verificationState === 'approved' ? 'Your documents are locked because you’re verified. Contact support to change them.' : 'Your documents are locked while they’re being reviewed.' }}
+      </p>
+
+      <ul class="docs">
+        <li class="doc-row" *ngFor="let slot of slots">
+          <div class="doc-icon" [class.has]="documentFor(slot.type)" aria-hidden="true">
+            <i class="bi" [ngClass]="documentFor(slot.type) ? 'bi-file-earmark-check' : 'bi-file-earmark-arrow-up'"></i>
+          </div>
+          <div class="doc-main">
+            <strong>{{ slot.label }}</strong>
+            <span *ngIf="documentFor(slot.type) as doc; else hint">
+              {{ doc.fileName }} · {{ formatSize(doc.sizeBytes) }} · uploaded {{ doc.uploadedAt | date: 'd MMM y' }}
+            </span>
+            <ng-template #hint><span>{{ slot.hint }}</span></ng-template>
+            <span class="doc-error" role="alert" *ngIf="documentErrors()[slot.type] as err">{{ err }}</span>
+          </div>
+          <div class="doc-actions">
+            <ng-container *ngIf="documentFor(slot.type) as doc">
+              <button type="button" class="btn btn-outline-ink btn-sm" (click)="view(doc)">View<span class="sr-only"> {{ slot.label }}</span></button>
+              <button type="button" class="btn btn-danger-outline btn-sm" *ngIf="p.canEditDocuments" (click)="removeTarget.set(doc)">Remove<span class="sr-only"> {{ slot.label }}</span></button>
+            </ng-container>
+            <label class="btn btn-sm" *ngIf="p.canEditDocuments"
+              [ngClass]="documentFor(slot.type) ? 'btn-soft' : 'btn-primary-role'"
+              [class.disabled]="uploading() !== null">
+              <span class="spinner-inline" *ngIf="uploading() === slot.type" aria-hidden="true"></span>
+              {{ uploading() === slot.type ? 'Uploading' : documentFor(slot.type) ? 'Replace' : 'Upload' }}<span class="sr-only"> {{ slot.label }}</span>
+              <input type="file" class="sr-only" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                [disabled]="uploading() !== null" (change)="onFileChosen(slot.type, $event)" />
+            </label>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="panel step" aria-labelledby="step-submit" *ngIf="p.canEditDocuments">
+      <header class="step-head">
+        <span class="step-num" aria-hidden="true">3</span>
+        <div>
+          <h2 id="step-submit">{{ p.verificationState === 'rejected' ? 'Submit again' : 'Submit for review' }}</h2>
+          <p>Your documents lock while we check them.</p>
+        </div>
+      </header>
+
+      <div class="notice notice-error" role="alert" *ngIf="submitError()">
+        <i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>{{ submitError() }}</span>
+      </div>
+
+      <div class="submit-row">
+        <p class="m-0" *ngIf="p.missingForSubmission.length; else ready">
+          Still needed: {{ p.missingForSubmission.join(', ') }}.
+        </p>
+        <ng-template #ready><p class="m-0">Everything’s in place.</p></ng-template>
+        <button type="button" class="btn btn-amber" [disabled]="!canSubmit() || submitting()" (click)="submit()">
+          <span class="spinner-inline" *ngIf="submitting()" aria-hidden="true"></span>
+          {{ submitting() ? 'Submitting' : 'Submit for review' }}
+        </button>
+      </div>
+    </section>
+  </ng-container>
+</div>
+
+<app-dialog
+  *ngIf="removeTarget() as doc"
+  title="Remove this document?"
+  [description]="doc.fileName + ' will be deleted. You’ll need to upload a replacement before you can submit.'"
+  (closed)="removeTarget.set(null)"
+>
+  <ng-container dialog-actions>
+    <button type="button" class="btn btn-outline-ink" (click)="removeTarget.set(null)">Cancel</button>
+    <button type="button" class="btn btn-danger-solid" (click)="confirmRemove()">Remove document</button>
+  </ng-container>
+</app-dialog>
