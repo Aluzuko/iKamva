@@ -1,0 +1,159 @@
+<app-page-header title="Messages" [subtitle]="role === 'tutor' ? 'Talk to your students and their parents' : 'Talk to your tutors'">
+  <button type="button" class="btn btn-primary-role" (click)="openCompose()">
+    <i class="bi bi-pencil-square" aria-hidden="true"></i><span>New<span class="long"> message</span></span>
+  </button>
+</app-page-header>
+
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loadingList()">Loading conversations…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="listFailed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load your messages. <a href="" (click)="$event.preventDefault(); loadConversations()">Try again</a></span>
+  </div>
+
+  <div class="chat" *ngIf="!loadingList() && !listFailed()" [class.has-selection]="selectedId()">
+    <section class="list" aria-label="Conversations">
+      <div class="list-search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <label class="sr-only" for="conv-search">Search conversations</label>
+        <input id="conv-search" type="search" class="form-control" placeholder="Search" [ngModel]="search()" (ngModelChange)="search.set($event)" />
+      </div>
+      <ul *ngIf="filteredConversations().length; else noConversations">
+        <li *ngFor="let c of filteredConversations()">
+          <button type="button" class="conv" [class.active]="c.conversationId === selectedId()" [attr.aria-current]="c.conversationId === selectedId() ? 'true' : null" (click)="open(c)">
+            <app-avatar [name]="c.otherName" size="sm"></app-avatar>
+            <span class="conv-main">
+              <span class="conv-top">
+                <strong>{{ c.otherName }}</strong>
+                <time>{{ timeLabel(c.lastMessageAt) }}</time>
+              </span>
+              <span class="conv-bottom">
+                <span class="preview" [class.unread]="c.unreadCount">{{ c.lastMessageMine ? 'You: ' : '' }}{{ c.lastMessage }}</span>
+                <span class="count-badge" *ngIf="c.unreadCount">{{ c.unreadCount }}<span class="sr-only"> unread</span></span>
+              </span>
+            </span>
+          </button>
+        </li>
+      </ul>
+      <ng-template #noConversations>
+        <div class="list-empty">
+          <p>{{ search() ? 'No conversations match.' : 'No messages yet.' }}</p>
+          <button type="button" class="btn btn-outline-ink btn-sm" *ngIf="!search()" (click)="openCompose()">Start a conversation</button>
+        </div>
+      </ng-template>
+    </section>
+
+    <section class="thread" aria-label="Conversation" *ngIf="selectedId(); else pickOne">
+      <header class="thread-head">
+        <button type="button" class="back" (click)="back()"><i class="bi bi-chevron-left" aria-hidden="true"></i><span class="sr-only">Back to conversations</span></button>
+        <ng-container *ngIf="selected() as c">
+          <app-avatar [name]="c.otherName" size="sm"></app-avatar>
+          <div>
+            <strong>{{ c.otherName }}</strong>
+            <span>{{ roleName(c.otherRole) }}</span>
+          </div>
+        </ng-container>
+      </header>
+
+      <div class="scroller" #scroller>
+        <div class="loading-block" role="status" *ngIf="loadingThread()">Loading messages…</div>
+        <p class="muted center" *ngIf="threadFailed()">We couldn’t load this conversation. <button type="button" class="link-btn" (click)="select(selectedId()!)">Try again</button></p>
+
+        <div class="older" *ngIf="hasMore() && !loadingThread()">
+          <button type="button" class="btn btn-outline-ink btn-sm" [disabled]="loadingOlder()" (click)="loadOlder()">
+            <span class="spinner-inline" *ngIf="loadingOlder()" aria-hidden="true"></span>Load earlier messages
+          </button>
+        </div>
+
+        <div role="log" aria-live="polite" aria-relevant="additions">
+          <div class="day" *ngFor="let g of groups()">
+            <div class="day-label"><span>{{ g.label }}</span></div>
+            <div class="msg" *ngFor="let m of g.items" [class.mine]="m.mine" [class.pending]="m.pending" [class.failed]="m.failed">
+              <div class="bubble">{{ m.body }}</div>
+              <div class="msg-meta">
+                <ng-container *ngIf="m.failed; else okMeta">
+                  <span class="fail">Not sent.</span>
+                  <button type="button" class="link-btn" (click)="send(m)">Retry</button>
+                  <button type="button" class="link-btn" (click)="discard(m)">Delete</button>
+                </ng-container>
+                <ng-template #okMeta>
+                  <time>{{ m.pending ? 'Sending…' : (m.sentAt | date: 'HH:mm') }}</time>
+                  <span *ngIf="m.messageId === lastMineRead()"> · Seen</span>
+                </ng-template>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="muted center" *ngIf="!loadingThread() && !threadFailed() && !thread().length">No messages yet. Say hello.</p>
+      </div>
+
+      <form class="composer" (ngSubmit)="send()">
+        <label class="sr-only" for="composer">Message</label>
+        <textarea
+          id="composer"
+          #composer
+          rows="1"
+          class="form-control"
+          placeholder="Write a message"
+          [maxlength]="maxLength"
+          [ngModel]="draft()"
+          (ngModelChange)="draft.set($event)"
+          name="draft"
+          (keydown)="onComposerKey($event)"
+        ></textarea>
+        <button type="submit" class="btn btn-primary-role send" [disabled]="!draft().trim()">
+          <i class="bi bi-send" aria-hidden="true"></i><span class="sr-only">Send</span>
+        </button>
+        <span class="hint" *ngIf="draft().length > maxLength - 200">{{ draft().length }}/{{ maxLength }}</span>
+      </form>
+    </section>
+
+    <ng-template #pickOne>
+      <section class="thread empty-thread" aria-label="Conversation">
+        <i class="bi bi-chat-left-text" aria-hidden="true"></i>
+        <p>Choose a conversation, or start a new one.</p>
+      </section>
+    </ng-template>
+  </div>
+</div>
+
+<app-dialog *ngIf="composeOpen()" title="New message" [description]="composeTo() ? 'To ' + composeTo()!.name : 'Choose who to message'" (closed)="closeCompose()">
+  <div class="d-flex flex-column gap-3">
+    <div class="notice notice-error" role="alert" *ngIf="composeError()">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>{{ composeError() }}</span>
+    </div>
+
+    <ng-container *ngIf="!composeTo(); else writeIt">
+      <div class="loading-block" role="status" *ngIf="contactsLoading()">Loading contacts…</div>
+      <ul class="contact-list" *ngIf="!contactsLoading() && contacts().length">
+        <li *ngFor="let c of contacts()">
+          <button type="button" (click)="pickContact(c)">
+            <app-avatar [name]="c.fullName" size="sm"></app-avatar>
+            <span><strong>{{ c.fullName }}</strong><small>{{ c.context }}</small></span>
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </button>
+        </li>
+      </ul>
+      <p class="muted m-0" *ngIf="!contactsLoading() && !contacts().length">
+        {{ role === 'student' ? 'Open a tutor’s profile from Find a Tutor and press Message to contact them.' : 'You can message people once you share a lesson.' }}
+      </p>
+    </ng-container>
+
+    <ng-template #writeIt>
+      <div>
+        <label for="compose-body" class="form-label">Message</label>
+        <textarea id="compose-body" class="form-control" rows="4" [maxlength]="maxLength" [ngModel]="composeBody()" (ngModelChange)="composeBody.set($event)"
+          placeholder="Introduce yourself and say what you need help with"></textarea>
+      </div>
+    </ng-template>
+  </div>
+  <ng-container dialog-actions>
+    <button type="button" class="btn btn-outline-ink" (click)="closeCompose()">Cancel</button>
+    <button type="button" class="btn btn-primary-role" *ngIf="composeTo()" [disabled]="composeSending()" (click)="sendNew()">
+      <span class="spinner-inline" *ngIf="composeSending()" aria-hidden="true"></span>
+      {{ composeSending() ? 'Sending' : 'Send' }}
+    </button>
+  </ng-container>
+</app-dialog>
