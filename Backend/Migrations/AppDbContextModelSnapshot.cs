@@ -357,6 +357,9 @@ namespace Backend.Migrations
                     b.Property<decimal>("AmountTotal")
                         .HasColumnType("numeric(10,2)");
 
+                    b.Property<Guid?>("BookingId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("IssuedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -369,7 +372,7 @@ namespace Backend.Migrations
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("ParentUserId")
+                    b.Property<Guid?>("ParentUserId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Status")
@@ -384,6 +387,9 @@ namespace Backend.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .IsUnique();
 
                     b.HasIndex("ParentUserId");
 
@@ -526,8 +532,9 @@ namespace Backend.Migrations
                     b.Property<Guid>("InvoiceId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("ParentUserId")
-                        .HasColumnType("uuid");
+                    b.Property<Guid>("PayerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ParentUserId");
 
                     b.Property<string>("Provider")
                         .IsRequired()
@@ -551,7 +558,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.HasIndex("ParentUserId");
+                    b.HasIndex("PayerUserId");
 
                     b.ToTable("PaymentAttempts", (string)null);
                 });
@@ -915,6 +922,14 @@ namespace Backend.Migrations
                         .IsRequired();
 
                     b.Navigation("EmailMessage");
+                });
+
+            modelBuilder.Entity("Backend.Domain.Entities.Invoice", b =>
+                {
+                    b.HasOne("Backend.Domain.Entities.Booking", null)
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("Backend.Domain.Entities.LessonReview", b =>

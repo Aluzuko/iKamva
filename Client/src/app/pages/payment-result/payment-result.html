@@ -1,4 +1,4 @@
-<app-page-header title="Payment" [backLink]="['/parent/payments']" backLabel="Payments"></app-page-header>
+<app-page-header title="Payment" [backLink]="['/', accountBase(), 'payments']" backLabel="Payments"></app-page-header>
 
 <div class="page-body">
   <section class="panel result" [attr.aria-busy]="view() === 'checking'" aria-live="polite">
@@ -13,8 +13,8 @@
         <h2>Payment received</h2>
         <p *ngIf="attempt() as a"><strong>{{ a.amount | currency: 'ZAR' : 'R' : '1.2-2' }}</strong> for {{ a.description }}. A receipt is on its way from PayFast.</p>
         <div class="actions">
-          <a routerLink="/parent/payments" class="btn btn-primary-role">Back to payments</a>
-          <a routerLink="/parent/dashboard" class="btn btn-outline-ink">Dashboard</a>
+          <a [routerLink]="['/', accountBase(), 'payments']" class="btn btn-primary-role">Back to payments</a>
+          <a [routerLink]="['/', accountBase(), 'dashboard']" class="btn btn-outline-ink">Dashboard</a>
         </div>
       </ng-container>
 
@@ -24,7 +24,7 @@
         <p>PayFast hasn’t confirmed this payment yet. If you completed it, the invoice will show as paid shortly. Don’t pay again.</p>
         <div class="actions">
           <button type="button" class="btn btn-primary-role" (click)="checkAgain()">Check again</button>
-          <a routerLink="/parent/payments" class="btn btn-outline-ink">Back to payments</a>
+          <a [routerLink]="['/', accountBase(), 'payments']" class="btn btn-outline-ink">Back to payments</a>
         </div>
       </ng-container>
 
@@ -36,7 +36,7 @@
           <button type="button" class="btn btn-amber" *ngIf="attempt()" [disabled]="retrying()" (click)="retry()">
             <span class="spinner-inline" *ngIf="retrying()" aria-hidden="true"></span>{{ retrying() ? 'Opening PayFast' : 'Try again' }}
           </button>
-          <a routerLink="/parent/payments" class="btn btn-outline-ink">Back to payments</a>
+          <a [routerLink]="['/', accountBase(), 'payments']" class="btn btn-outline-ink">Back to payments</a>
         </div>
       </ng-container>
 
@@ -48,7 +48,7 @@
           <button type="button" class="btn btn-amber" [disabled]="retrying()" (click)="retry()">
             <span class="spinner-inline" *ngIf="retrying()" aria-hidden="true"></span>{{ retrying() ? 'Opening PayFast' : 'Try again' }}
           </button>
-          <a routerLink="/parent/payments" class="btn btn-outline-ink">Back to payments</a>
+          <a [routerLink]="['/', accountBase(), 'payments']" class="btn btn-outline-ink">Back to payments</a>
         </div>
       </ng-container>
 
@@ -56,7 +56,7 @@
         <span class="icon neutral" aria-hidden="true"><i class="bi bi-question-lg"></i></span>
         <h2>We couldn’t find this payment</h2>
         <p>Check your payments page for the latest status.</p>
-        <div class="actions"><a routerLink="/parent/payments" class="btn btn-primary-role">Go to payments</a></div>
+        <div class="actions"><a [routerLink]="['/', accountBase(), 'payments']" class="btn btn-primary-role">Go to payments</a></div>
       </ng-container>
     </ng-container>
   </section>

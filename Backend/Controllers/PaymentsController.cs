@@ -22,7 +22,7 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpPost("api/parent/payments/{invoiceId:guid}/checkout")]
-    [Authorize(Roles = "parent")]
+    [Authorize(Roles = "parent,student")]
     [EnableRateLimiting("UserActions")]
     public async Task<ActionResult<PaymentRedirectResponse>> Checkout(Guid invoiceId, CancellationToken ct)
     {
@@ -37,7 +37,7 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpGet("api/parent/payments/attempts/{attemptId:guid}")]
-    [Authorize(Roles = "parent")]
+    [Authorize(Roles = "parent,student")]
     public async Task<ActionResult<PaymentAttemptDto>> Attempt(Guid attemptId, CancellationToken ct)
     {
         var attempt = await _payFast.GetAttemptAsync(CurrentUserId(), attemptId, ct);
@@ -46,8 +46,8 @@ public class PaymentsController : ControllerBase
 
     [HttpGet("api/payments/payfast/return")]
     [AllowAnonymous]
-    public IActionResult Return([FromQuery] Guid? attempt) =>
-        Redirect(_payFast.ClientResultUrl(attempt, cancelled: false));
+    public async Task<IActionResult> Return([FromQuery] Guid? attempt, CancellationToken ct) =>
+        Redirect(await _payFast.ClientResultUrlAsync(attempt, cancelled: false, ct));
 
     [HttpGet("api/payments/payfast/cancel")]
     [AllowAnonymous]
@@ -57,7 +57,7 @@ public class PaymentsController : ControllerBase
         {
             await _payFast.MarkCancelledAsync(attempt.Value, ct);
         }
-        return Redirect(_payFast.ClientResultUrl(attempt, cancelled: true));
+        return Redirect(await _payFast.ClientResultUrlAsync(attempt, cancelled: true, ct));
     }
 
     [HttpPost("api/payments/payfast/notify")]
@@ -68,8 +68,8 @@ public class PaymentsController : ControllerBase
     {
         using var reader = new StreamReader(Request.Body);
         var body = await reader.ReadToEndAsync(ct);
-        await _payFast.HandleNotificationAsync(body, HttpContext.Connection.RemoteIpAddress, ct);
-        return Ok();
+        var accepted = await _payFast.HandleNotificationAsync(body, HttpContext.Connection.RemoteIpAddress, ct);
+        return accepted ? Ok() : BadRequest();
     }
 
     private Guid CurrentUserId()

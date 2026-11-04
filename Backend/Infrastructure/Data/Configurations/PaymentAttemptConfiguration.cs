@@ -13,6 +13,7 @@ public class PaymentAttemptConfiguration : IEntityTypeConfiguration<PaymentAttem
 
         builder.Property(p => p.Amount).HasColumnType("numeric(10,2)");
         builder.Property(p => p.AmountFee).HasColumnType("numeric(10,2)");
+        builder.Property(p => p.PayerUserId).HasColumnName("ParentUserId");
         builder.Property(p => p.Provider).IsRequired().HasMaxLength(20);
         builder.Property(p => p.ProviderPaymentId).HasMaxLength(50);
         builder.Property(p => p.ProviderStatus).HasMaxLength(20);
@@ -24,6 +25,6 @@ public class PaymentAttemptConfiguration : IEntityTypeConfiguration<PaymentAttem
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(p => p.InvoiceId);
-        builder.HasIndex(p => p.ParentUserId);
+        builder.HasIndex(p => p.PayerUserId);
     }
 }

@@ -21,8 +21,12 @@ public sealed class CreateBookingRequest
 public sealed class BookingCreatedDto
 {
     public required Guid BookingId { get; init; }
+    public required Guid InvoiceId { get; init; }
     public required DateTime ScheduledAt { get; init; }
     public required decimal Price { get; init; }
+    public required bool PaymentRequired { get; init; }
+    public Backend.Models.Payments.PaymentRedirectResponse? PaymentRedirect { get; init; }
+    public string? PaymentError { get; init; }
 }
 
 public sealed class StudentLessonDto

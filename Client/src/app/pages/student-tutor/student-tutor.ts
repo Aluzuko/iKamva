@@ -2,8 +2,9 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { LESSON_DURATIONS, SAST, Slots, TutorPublicProfile } from '../../models/student.model';
+import { BookingCreated, LESSON_DURATIONS, SAST, Slots, TutorPublicProfile } from '../../models/student.model';
 import { DAY_NAMES, minutesToTime } from '../../models/tutor.model';
+import { PayFastCheckout } from '../../services/payfast-checkout';
 import { Student } from '../../services/student';
 import { NotificationService } from '../../services/notification.service';
 import { PageHeader } from '../../components/page-header/page-header';
@@ -64,6 +65,7 @@ export class StudentTutor implements OnInit {
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly studentApi: Student,
+    private readonly payFast: PayFastCheckout,
     private readonly notifications: NotificationService
   ) {}
 
@@ -150,9 +152,20 @@ export class StudentTutor implements OnInit {
     }
     this.booking.set(true);
     this.studentApi.book({ tutorId: this.tutorId, subjectId, startUtc: start, durationMinutes: this.duration() }).subscribe({
-      next: () => {
+      next: (response: BookingCreated) => {
+        debugger
         this.booking.set(false);
         this.confirmOpen.set(false);
+        if (response.paymentRedirect) {
+          this.payFast.submit(response.paymentRedirect);
+          return;
+        }
+        if (response.paymentRequired) {
+          this.notifications.showError(
+            'Payment not started',
+            response.paymentError ?? 'Your lesson is booked, but online payment could not be started. Please contact support.'
+          );
+        }
         this.notifications.showSuccess('Lesson booked', `${this.subjectName()} with ${this.tutor()?.fullName} is in your lessons.`);
         this.router.navigate(['/student/lessons']);
       },

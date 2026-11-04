@@ -5,8 +5,9 @@ namespace Backend.Domain.Entities;
 public class Invoice
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid ParentUserId { get; set; }
+    public Guid? ParentUserId { get; set; }
     public Guid StudentUserId { get; set; }
+    public Guid? BookingId { get; set; }
     public int Year { get; set; }
     public int Month { get; set; }
     public int LessonCount { get; set; }

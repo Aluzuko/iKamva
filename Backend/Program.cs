@@ -117,6 +117,7 @@ builder.Services.AddScoped<Backend.Infrastructure.Tutors.ITutorLessonService, Ba
 builder.Services.AddScoped<Backend.Infrastructure.Tutors.ITutorEarningsService, Backend.Infrastructure.Tutors.TutorEarningsService>();
 builder.Services.AddScoped<Backend.Infrastructure.Students.TutorDirectoryService>();
 builder.Services.AddScoped<Backend.Infrastructure.Students.ITutorDirectoryService>(sp => sp.GetRequiredService<Backend.Infrastructure.Students.TutorDirectoryService>());
+builder.Services.AddScoped<Backend.Infrastructure.Students.IInvoiceService, Backend.Infrastructure.Students.InvoiceService>();
 builder.Services.AddScoped<Backend.Infrastructure.Students.IBookingService, Backend.Infrastructure.Students.BookingService>();
 builder.Services.AddScoped<Backend.Infrastructure.Students.IStudentService, Backend.Infrastructure.Students.StudentService>();
 builder.Services.AddScoped<Backend.Infrastructure.Messaging.IMessagingService, Backend.Infrastructure.Messaging.MessagingService>();

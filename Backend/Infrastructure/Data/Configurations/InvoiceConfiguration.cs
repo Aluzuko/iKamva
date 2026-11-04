@@ -14,6 +14,12 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.Property(i => i.AmountTotal).HasColumnType("numeric(10,2)");
         builder.Property(i => i.Status).HasConversion<string>().HasMaxLength(20);
 
+        builder.HasOne<Booking>()
+            .WithMany()
+            .HasForeignKey(i => i.BookingId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(i => i.BookingId).IsUnique();
         builder.HasIndex(i => i.ParentUserId);
         builder.HasIndex(i => i.StudentUserId);
         builder.HasIndex(i => new { i.Year, i.Month });

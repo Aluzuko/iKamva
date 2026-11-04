@@ -237,18 +237,24 @@ public class EmailAdminService : IEmailAdminService
         {
             return ServiceResult<Guid>.From(ServiceResult.NotFound());
         }
-        var people = await _db.Users.Where(u => u.Id == invoice.ParentUserId || u.Id == invoice.StudentUserId).ToDictionaryAsync(u => u.Id, ct);
-        if (!people.TryGetValue(invoice.ParentUserId, out var parent))
+        var payerId = invoice.ParentUserId ?? invoice.StudentUserId;
+        var people = await _db.Users.Where(u => u.Id == payerId || u.Id == invoice.StudentUserId).ToDictionaryAsync(u => u.Id, ct);
+        if (!people.TryGetValue(payerId, out var payer))
         {
-            return ServiceResult<Guid>.From(ServiceResult.Conflict("This invoice has no parent account to send it to."));
+            return ServiceResult<Guid>.From(ServiceResult.Conflict("The invoice payer account could not be found."));
         }
-        var studentName = people.TryGetValue(invoice.StudentUserId, out var student) ? student.FullName : "your child";
+        var studentName = people.TryGetValue(invoice.StudentUserId, out var student) ? student.FullName : "the student";
 
         var period = $"{MonthNames[invoice.Month - 1]} {invoice.Year}";
         var monthStart = TutorRules.LocalToUtc(new DateTime(invoice.Year, invoice.Month, 1));
         var monthEnd = TutorRules.LocalToUtc(new DateTime(invoice.Year, invoice.Month, 1).AddMonths(1));
         var lines = await _db.Bookings
-            .Where(b => b.StudentUserId == invoice.StudentUserId && b.Status == BookingStatus.Completed && b.ScheduledAt >= monthStart && b.ScheduledAt < monthEnd)
+            .Where(b => invoice.BookingId != null
+                ? b.Id == invoice.BookingId
+                : b.StudentUserId == invoice.StudentUserId
+                    && b.Status == BookingStatus.Completed
+                    && b.ScheduledAt >= monthStart
+                    && b.ScheduledAt < monthEnd)
             .OrderBy(b => b.ScheduledAt)
             .Select(b => new InvoiceLine(b.ScheduledAt, b.Subject.Name + " - " + b.DurationMinutes + " min", b.PriceAmount))
             .ToListAsync(ct);
@@ -259,15 +265,15 @@ public class EmailAdminService : IEmailAdminService
 
         var number = $"INV-{invoice.Year}{invoice.Month:00}-{invoice.Id.ToString()[..8].ToUpperInvariant()}";
         var paid = invoice.Status == InvoiceStatus.Paid;
-        var pdf = SimplePdf.Invoice(number, parent.FullName, parent.Email, studentName, period, lines, invoice.AmountTotal, paid, invoice.IssuedAt);
+        var pdf = SimplePdf.Invoice(number, payer.FullName, payer.Email, studentName, period, lines, invoice.AmountTotal, paid, invoice.IssuedAt);
 
         var message = await _queue.EnqueueAsync(new EmailRequest
         {
             Category = EmailCategory.Invoice,
-            ToEmail = parent.Email,
-            ToName = parent.FullName,
-            RecipientUserId = parent.Id,
-            Content = _templates.Invoice(parent.FullName, studentName, period, invoice.AmountTotal, paid),
+            ToEmail = payer.Email,
+            ToName = payer.FullName,
+            RecipientUserId = payer.Id,
+            Content = _templates.Invoice(payer.FullName, studentName, period, invoice.AmountTotal, paid),
             RelatedEntityType = "Invoice",
             RelatedEntityId = invoice.Id,
             CreatedByUserId = adminId,

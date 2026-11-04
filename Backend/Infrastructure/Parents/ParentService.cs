@@ -131,16 +131,24 @@ public class ParentService : IParentService
 
         foreach (var student in students)
         {
-            var thisMonthInvoice = await _db.Invoices.FirstOrDefaultAsync(
-                i => i.StudentUserId == student.Id && i.Year == now.Year && i.Month == now.Month, ct);
+            var thisMonthInvoices = await _db.Invoices
+                .Where(i => i.ParentUserId == parentUserId
+                    && i.StudentUserId == student.Id
+                    && i.Year == now.Year
+                    && i.Month == now.Month)
+                .OrderBy(i => i.IssuedAt)
+                .ToListAsync(ct);
+            var pendingInvoice = thisMonthInvoices.FirstOrDefault(i => i.Status == InvoiceStatus.Pending);
 
             children.Add(new ChildPaymentSummaryDto
             {
                 StudentId = student.Id,
                 StudentName = student.FullName,
-                ThisMonthAmount = thisMonthInvoice?.AmountTotal ?? 0m,
-                Status = thisMonthInvoice?.Status ?? InvoiceStatus.Pending,
-                PendingInvoiceId = thisMonthInvoice is { Status: InvoiceStatus.Pending } ? thisMonthInvoice.Id : null,
+                ThisMonthAmount = thisMonthInvoices.Sum(i => i.AmountTotal),
+                Status = thisMonthInvoices.Count == 0 || pendingInvoice is not null
+                    ? InvoiceStatus.Pending
+                    : InvoiceStatus.Paid,
+                PendingInvoiceId = pendingInvoice?.Id,
             });
         }
 

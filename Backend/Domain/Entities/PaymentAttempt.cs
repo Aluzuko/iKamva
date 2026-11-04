@@ -7,7 +7,7 @@ public class PaymentAttempt
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid InvoiceId { get; set; }
     public Invoice Invoice { get; set; } = null!;
-    public Guid ParentUserId { get; set; }
+    public Guid PayerUserId { get; set; }
     public decimal Amount { get; set; }
     public required string Provider { get; set; }
     public PaymentStatus Status { get; set; } = PaymentStatus.Pending;

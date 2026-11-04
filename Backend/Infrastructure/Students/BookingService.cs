@@ -20,11 +20,13 @@ public class BookingService : IBookingService
 
     private readonly AppDbContext _db;
     private readonly TutorDirectoryService _directory;
+    private readonly IInvoiceService _invoices;
 
-    public BookingService(AppDbContext db, TutorDirectoryService directory)
+    public BookingService(AppDbContext db, TutorDirectoryService directory, IInvoiceService invoices)
     {
         _db = db;
         _directory = directory;
+        _invoices = invoices;
     }
 
     public async Task<ServiceResult<BookingCreatedDto>> CreateAsync(Guid studentId, CreateBookingRequest request, CancellationToken ct = default)
@@ -104,19 +106,28 @@ public class BookingService : IBookingService
 
             _db.Bookings.Add(booking);
             await _db.SaveChangesAsync(ct);
+
+            var invoiceResult = await _invoices.CreateForBookingAsync(studentId, booking.Id, ct);
+            if (invoiceResult.Outcome != ServiceOutcome.Ok || invoiceResult.Value is null)
+            {
+                return Fail(new ServiceResult(invoiceResult.Outcome, invoiceResult.Message));
+            }
+
             await transaction.CommitAsync(ct);
+
+            return ServiceResult<BookingCreatedDto>.Ok(new BookingCreatedDto
+            {
+                BookingId = booking.Id,
+                InvoiceId = invoiceResult.Value.Invoice.InvoiceId,
+                ScheduledAt = booking.ScheduledAt,
+                Price = booking.PriceAmount,
+                PaymentRequired = invoiceResult.Value.Invoice.PaymentRequired,
+            });
         }
         catch (Exception ex) when (IsConcurrencyConflict(ex))
         {
             return Fail(ServiceResult.Conflict(SlotTaken));
         }
-
-        return ServiceResult<BookingCreatedDto>.Ok(new BookingCreatedDto
-        {
-            BookingId = booking.Id,
-            ScheduledAt = booking.ScheduledAt,
-            Price = booking.PriceAmount,
-        });
     }
 
     private static ServiceResult<BookingCreatedDto> Fail(ServiceResult result) => ServiceResult<BookingCreatedDto>.From(result);

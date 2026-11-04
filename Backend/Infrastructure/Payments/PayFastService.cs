@@ -15,15 +15,15 @@ public interface IPayFastService
 {
     bool IsConfigured { get; }
 
-    Task<ServiceResult<PaymentRedirectResponse>> CreateCheckoutAsync(Guid parentId, Guid invoiceId, CancellationToken ct = default);
+    Task<ServiceResult<PaymentRedirectResponse>> CreateCheckoutAsync(Guid payerId, Guid invoiceId, CancellationToken ct = default);
 
-    Task<PaymentAttemptDto?> GetAttemptAsync(Guid parentId, Guid attemptId, CancellationToken ct = default);
+    Task<PaymentAttemptDto?> GetAttemptAsync(Guid payerId, Guid attemptId, CancellationToken ct = default);
 
     Task MarkCancelledAsync(Guid attemptId, CancellationToken ct = default);
 
     Task<bool> HandleNotificationAsync(string rawBody, IPAddress? sourceIp, CancellationToken ct = default);
 
-    string ClientResultUrl(Guid? attemptId, bool cancelled);
+    Task<string> ClientResultUrlAsync(Guid? attemptId, bool cancelled, CancellationToken ct = default);
 }
 
 public class PayFastService : IPayFastService
@@ -54,14 +54,15 @@ public class PayFastService : IPayFastService
 
     public bool IsConfigured => _options.IsConfigured;
 
-    public async Task<ServiceResult<PaymentRedirectResponse>> CreateCheckoutAsync(Guid parentId, Guid invoiceId, CancellationToken ct = default)
+    public async Task<ServiceResult<PaymentRedirectResponse>> CreateCheckoutAsync(Guid payerId, Guid invoiceId, CancellationToken ct = default)
     {
         if (!_options.IsConfigured)
         {
             return ServiceResult<PaymentRedirectResponse>.From(ServiceResult.Conflict("Online payments aren’t set up yet. Please try again later."));
         }
 
-        var invoice = await _db.Invoices.FirstOrDefaultAsync(i => i.Id == invoiceId && i.ParentUserId == parentId, ct);
+        var invoice = await _db.Invoices.FirstOrDefaultAsync(
+            i => i.Id == invoiceId && (i.ParentUserId == payerId || (i.ParentUserId == null && i.StudentUserId == payerId)), ct);
         if (invoice is null)
         {
             return ServiceResult<PaymentRedirectResponse>.From(ServiceResult.NotFound());
@@ -75,31 +76,34 @@ public class PayFastService : IPayFastService
             return ServiceResult<PaymentRedirectResponse>.From(ServiceResult.Invalid("There’s nothing to pay on this invoice."));
         }
 
-        var parent = await _db.Users.FirstAsync(u => u.Id == parentId, ct);
+        var payer = await _db.Users.FirstOrDefaultAsync(u => u.Id == payerId, ct);
+        if (payer is null)
+        {
+            return ServiceResult<PaymentRedirectResponse>.From(ServiceResult.NotFound());
+        }
         var student = await _db.Users.Where(u => u.Id == invoice.StudentUserId).Select(u => u.FullName).FirstOrDefaultAsync(ct) ?? "student";
 
         var attempt = new PaymentAttempt
         {
             InvoiceId = invoice.Id,
-            ParentUserId = parentId,
+            PayerUserId = payerId,
             Amount = invoice.AmountTotal,
             Provider = Provider,
         };
         _db.PaymentAttempts.Add(attempt);
         await _db.SaveChangesAsync(ct);
 
-        var api = _options.PublicApiUrl.TrimEnd('/');
-        var names = parent.FullName.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+        var names = payer.FullName.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
         var fields = new List<KeyValuePair<string, string>>
         {
             new("merchant_id", _options.MerchantId),
             new("merchant_key", _options.MerchantKey),
-            new("return_url", WithAttempt(_options.ReturnUrl ?? $"{api}/api/payments/payfast/return", attempt.Id)),
-            new("cancel_url", WithAttempt(_options.CancelUrl ?? $"{api}/api/payments/payfast/cancel", attempt.Id)),
-            new("notify_url", _options.NotifyUrl ?? $"{api}/api/payments/payfast/notify"),
+            new("return_url", WithAttempt(_options.ReturnUrl ?? ApiCallbackUrl("return"), attempt.Id)),
+            new("cancel_url", WithAttempt(_options.CancelUrl ?? ApiCallbackUrl("cancel"), attempt.Id)),
+            new("notify_url", _options.NotifyUrl ?? ApiCallbackUrl("notify")),
             new("name_first", Truncate(names.ElementAtOrDefault(0) ?? string.Empty, 100)),
             new("name_last", Truncate(names.ElementAtOrDefault(1) ?? string.Empty, 100)),
-            new("email_address", Truncate(parent.Email, 100)),
+            new("email_address", Truncate(payer.Email, 100)),
             new("m_payment_id", attempt.Id.ToString()),
             new("amount", attempt.Amount.ToString("0.00", CultureInfo.InvariantCulture)),
             new("item_name", Truncate($"iKamva lessons {MonthNames[invoice.Month - 1]} {invoice.Year}", 100)),
@@ -117,11 +121,11 @@ public class PayFastService : IPayFastService
         });
     }
 
-    public async Task<PaymentAttemptDto?> GetAttemptAsync(Guid parentId, Guid attemptId, CancellationToken ct = default)
+    public async Task<PaymentAttemptDto?> GetAttemptAsync(Guid payerId, Guid attemptId, CancellationToken ct = default)
     {
         var attempt = await _db.PaymentAttempts
             .Include(p => p.Invoice)
-            .FirstOrDefaultAsync(p => p.Id == attemptId && p.ParentUserId == parentId, ct);
+            .FirstOrDefaultAsync(p => p.Id == attemptId && p.PayerUserId == payerId, ct);
         if (attempt is null)
         {
             return null;
@@ -201,12 +205,18 @@ public class PayFastService : IPayFastService
             return false;
         }
 
+        var status = Get("payment_status")?.ToUpperInvariant();
+        if (status is not ("COMPLETE" or "FAILED" or "CANCELLED" or "PENDING"))
+        {
+            _logger.LogWarning("PayFast ITN rejected: unsupported payment status {Status} for {AttemptId}", status, attemptId);
+            return false;
+        }
+
         if (attempt.Status == PaymentStatus.Complete)
         {
             return true;
         }
 
-        var status = Get("payment_status")?.ToUpperInvariant();
         attempt.ProviderStatus = status;
         attempt.ProviderPaymentId = Get("pf_payment_id");
         if (decimal.TryParse(Get("amount_fee"), NumberStyles.Number, CultureInfo.InvariantCulture, out var fee))
@@ -232,6 +242,8 @@ public class PayFastService : IPayFastService
             case "CANCELLED":
                 attempt.Status = PaymentStatus.Cancelled;
                 break;
+            case "PENDING":
+                break;
         }
 
         await _db.SaveChangesAsync(ct);
@@ -241,8 +253,8 @@ public class PayFastService : IPayFastService
 
     private async Task StageConfirmationAsync(PaymentAttempt attempt, CancellationToken ct)
     {
-        var parent = await _db.Users.FirstOrDefaultAsync(u => u.Id == attempt.ParentUserId, ct);
-        if (parent is null || !EmailQueue.IsValidAddress(parent.Email))
+        var payer = await _db.Users.FirstOrDefaultAsync(u => u.Id == attempt.PayerUserId, ct);
+        if (payer is null || !EmailQueue.IsValidAddress(payer.Email))
         {
             return;
         }
@@ -250,20 +262,29 @@ public class PayFastService : IPayFastService
         await _emails.StageAsync(new EmailRequest
         {
             Category = EmailCategory.PaymentConfirmation,
-            ToEmail = parent.Email,
-            ToName = parent.FullName,
-            RecipientUserId = parent.Id,
+            ToEmail = payer.Email,
+            ToName = payer.FullName,
+            RecipientUserId = payer.Id,
             Priority = EmailPriority.High,
-            Content = _templates.PaymentConfirmation(parent.FullName, period, attempt.Amount, attempt.ProviderPaymentId ?? attempt.Id.ToString(), attempt.CompletedAt ?? DateTime.UtcNow),
+            Content = _templates.PaymentConfirmation(payer.FullName, period, attempt.Amount, attempt.ProviderPaymentId ?? attempt.Id.ToString(), attempt.CompletedAt ?? DateTime.UtcNow),
             RelatedEntityType = "PaymentAttempt",
             RelatedEntityId = attempt.Id,
             IdempotencyKey = $"payment-confirmation:{attempt.Id}",
         }, ct);
     }
 
-    public string ClientResultUrl(Guid? attemptId, bool cancelled)
+    public async Task<string> ClientResultUrlAsync(Guid? attemptId, bool cancelled, CancellationToken ct = default)
     {
-        var url = $"{_options.ClientUrl.TrimEnd('/')}/parent/payments/result";
+        var role = attemptId is null
+            ? null
+            : await (
+                from attempt in _db.PaymentAttempts
+                join payer in _db.Users on attempt.PayerUserId equals payer.Id
+                where attempt.Id == attemptId
+                select (UserRole?)payer.Role
+            ).FirstOrDefaultAsync(ct);
+        var route = role == UserRole.Student ? "student" : "parent";
+        var url = $"{_options.ClientUrl.TrimEnd('/')}/{route}/payments/result";
         var query = new List<string>();
         if (attemptId is not null)
         {
@@ -274,6 +295,21 @@ public class PayFastService : IPayFastService
             query.Add("cancelled=1");
         }
         return query.Count == 0 ? url : url + "?" + string.Join('&', query);
+    }
+
+    private string ApiCallbackUrl(string action)
+    {
+        var builder = new UriBuilder(_options.PublicApiUrl);
+        var path = builder.Path.TrimEnd('/');
+        if (!path.EndsWith("/api", StringComparison.OrdinalIgnoreCase))
+        {
+            path += "/api";
+        }
+
+        builder.Path = $"{path}/payments/payfast/{action}";
+        builder.Query = string.Empty;
+        builder.Fragment = string.Empty;
+        return builder.Uri.AbsoluteUri;
     }
 
     private async Task<bool> ConfirmWithPayFastAsync(string paramString, CancellationToken ct)
@@ -316,8 +352,16 @@ public class PayFastService : IPayFastService
         return false;
     }
 
-    private static string WithAttempt(string url, Guid attemptId) =>
-        url + (url.Contains('?') ? "&" : "?") + "attempt=" + attemptId;
+    private static string WithAttempt(string url, Guid attemptId)
+    {
+        var builder = new UriBuilder(url);
+        var query = builder.Query.TrimStart('?')
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Where(part => !part.StartsWith("attempt=", StringComparison.OrdinalIgnoreCase))
+            .Append("attempt=" + Uri.EscapeDataString(attemptId.ToString()));
+        builder.Query = string.Join('&', query);
+        return builder.Uri.AbsoluteUri;
+    }
 
     private static string Truncate(string value, int max) => value.Length <= max ? value : value[..max];
 }

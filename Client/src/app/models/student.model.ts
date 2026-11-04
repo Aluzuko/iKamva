@@ -1,4 +1,4 @@
-import { BookingStatus, InvoiceStatus } from './parent.model';
+import { BookingStatus, InvoiceStatus, PaymentRedirect } from './parent.model';
 import { AvailabilitySlot, Review } from './tutor.model';
 
 export interface SubjectRef {
@@ -61,8 +61,12 @@ export interface CreateBookingPayload {
 
 export interface BookingCreated {
   bookingId: string;
+  invoiceId: string;
   scheduledAt: string;
   price: number;
+  paymentRequired: boolean;
+  paymentRedirect: PaymentRedirect | null;
+  paymentError: string | null;
 }
 
 export interface StudentLesson {

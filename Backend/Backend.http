@@ -4,3 +4,20 @@ GET {{Backend_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+@studentToken = replace-with-student-access-token
+@bookingId = replace-with-booking-id
+@invoiceId = replace-with-invoice-id
+
+### Create or retrieve the invoice for a booking
+POST {{Backend_HostAddress}}/api/student/invoices
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "bookingId": "{{bookingId}}"
+}
+
+### Get a student's invoice
+GET {{Backend_HostAddress}}/api/student/invoices/{{invoiceId}}
+Authorization: Bearer {{studentToken}}

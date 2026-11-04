@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Backend.Infrastructure.Payments;
 using Backend.Infrastructure.Students;
 using Backend.Infrastructure.Tutors;
 using Backend.Models.Student;
@@ -17,12 +18,15 @@ public class StudentController : ControllerBase
     private readonly IStudentService _students;
     private readonly ITutorDirectoryService _directory;
     private readonly IBookingService _bookings;
+    private readonly IPayFastService _payFast;
 
-    public StudentController(IStudentService students, ITutorDirectoryService directory, IBookingService bookings)
+    public StudentController(
+        IStudentService students, ITutorDirectoryService directory, IBookingService bookings, IPayFastService payFast)
     {
         _students = students;
         _directory = directory;
         _bookings = bookings;
+        _payFast = payFast;
     }
 
     [HttpGet("dashboard")]
@@ -66,7 +70,29 @@ public class StudentController : ControllerBase
     public async Task<ActionResult<BookingCreatedDto>> Book(CreateBookingRequest request, CancellationToken ct)
     {
         var result = await _bookings.CreateAsync(CurrentUserId(), request, ct);
-        return result.Outcome == ServiceOutcome.Ok ? Ok(result.Value) : ToAction(new ServiceResult(result.Outcome, result.Message));
+        if (result.Outcome != ServiceOutcome.Ok || result.Value is null)
+        {
+            return ToAction(new ServiceResult(result.Outcome, result.Message));
+        }
+
+        var booking = result.Value;
+        if (!booking.PaymentRequired)
+        {
+            return Ok(booking);
+        }
+
+        var checkout = await _payFast.CreateCheckoutAsync(CurrentUserId(), booking.InvoiceId, ct);
+        var checkoutStarted = checkout.Outcome == ServiceOutcome.Ok && checkout.Value is not null;
+        return Ok(new BookingCreatedDto
+        {
+            BookingId = booking.BookingId,
+            InvoiceId = booking.InvoiceId,
+            ScheduledAt = booking.ScheduledAt,
+            Price = booking.Price,
+            PaymentRequired = true,
+            PaymentRedirect = checkoutStarted ? checkout.Value : null,
+            PaymentError = checkoutStarted ? null : checkout.Message ?? "Online payment could not be started.",
+        });
     }
 
     [HttpGet("lessons")]

@@ -51,6 +51,7 @@ const routes: Routes = [
     { path: 'find-tutor', loadComponent: () => import('./pages/find-tutor/find-tutor').then((m) => m.FindTutor) },
     { path: 'tutors/:tutorId', loadComponent: () => import('./pages/student-tutor/student-tutor').then((m) => m.StudentTutor) },
     { path: 'lessons', loadComponent: () => import('./pages/student-lessons/student-lessons').then((m) => m.StudentLessons) },
+    { path: 'payments/result', loadComponent: () => import('./pages/payment-result/payment-result').then((m) => m.PaymentResult) },
     { path: 'messages', loadComponent: () => import('./pages/messages/messages').then((m) => m.MessagesPage) },
     { path: 'billing', loadComponent: () => import('./pages/student-billing/student-billing').then((m) => m.StudentBilling) },
   ]),
