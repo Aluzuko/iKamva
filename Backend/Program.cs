@@ -1,17 +1,22 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Backend.Infrastructure.Auth;
 using Backend.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.OpenApi;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ---------------------------------------------------------------------------
+// Database (Supabase Postgres, via connection string from config/env)
+// ---------------------------------------------------------------------------
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration["Supabase:ConnectionString"]
     ?? builder.Configuration["SUPABASE_CONNECTION_STRING"]
@@ -25,6 +30,9 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
+// ---------------------------------------------------------------------------
+// JWT auth
+// ---------------------------------------------------------------------------
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
@@ -54,6 +62,42 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+// ---------------------------------------------------------------------------
+// Rate limiting — fixed-window limiter on the sensitive, unauthenticated auth
+// endpoints (login/register) to blunt brute-force and credential-stuffing.
+// Per-client-IP partitioning; 429 on rejection.
+// ---------------------------------------------------------------------------
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("AuthEndpoints", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 5,
+                QueueLimit = 0,
+            }));
+
+    options.AddPolicy("UserActions", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? httpContext.User.FindFirst("sub")?.Value
+                ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 30,
+                QueueLimit = 0,
+            }));
+});
+
+// ---------------------------------------------------------------------------
+// App services
+// ---------------------------------------------------------------------------
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IUserSessionService, UserSessionService>();
@@ -66,6 +110,57 @@ builder.Services.AddScoped<Backend.Infrastructure.Admin.ISubjectAdminService, Ba
 builder.Services.AddScoped<Backend.Infrastructure.Admin.IMonitoringAdminService, Backend.Infrastructure.Admin.MonitoringAdminService>();
 builder.Services.AddScoped<Backend.Infrastructure.Admin.IDisputeAdminService, Backend.Infrastructure.Admin.DisputeAdminService>();
 builder.Services.AddScoped<Backend.Infrastructure.Admin.IAnalyticsAdminService, Backend.Infrastructure.Admin.AnalyticsAdminService>();
+builder.Services.AddScoped<Backend.Infrastructure.Profile.IProfileService, Backend.Infrastructure.Profile.ProfileService>();
+builder.Services.AddScoped<Backend.Infrastructure.Tutors.ITutorProfileService, Backend.Infrastructure.Tutors.TutorProfileService>();
+builder.Services.AddScoped<Backend.Infrastructure.Tutors.ITutorAvailabilityService, Backend.Infrastructure.Tutors.TutorAvailabilityService>();
+builder.Services.AddScoped<Backend.Infrastructure.Tutors.ITutorLessonService, Backend.Infrastructure.Tutors.TutorLessonService>();
+builder.Services.AddScoped<Backend.Infrastructure.Tutors.ITutorEarningsService, Backend.Infrastructure.Tutors.TutorEarningsService>();
+builder.Services.AddScoped<Backend.Infrastructure.Students.TutorDirectoryService>();
+builder.Services.AddScoped<Backend.Infrastructure.Students.ITutorDirectoryService>(sp => sp.GetRequiredService<Backend.Infrastructure.Students.TutorDirectoryService>());
+builder.Services.AddScoped<Backend.Infrastructure.Students.IBookingService, Backend.Infrastructure.Students.BookingService>();
+builder.Services.AddScoped<Backend.Infrastructure.Students.IStudentService, Backend.Infrastructure.Students.StudentService>();
+builder.Services.AddScoped<Backend.Infrastructure.Messaging.IMessagingService, Backend.Infrastructure.Messaging.MessagingService>();
+
+builder.Services.Configure<Backend.Infrastructure.Payments.PayFastOptions>(builder.Configuration.GetSection(Backend.Infrastructure.Payments.PayFastOptions.SectionName));
+builder.Services.PostConfigure<Backend.Infrastructure.Payments.PayFastOptions>(options =>
+{
+    if (string.IsNullOrWhiteSpace(options.ClientUrl))
+    {
+        options.ClientUrl = builder.Configuration["ClientUrl"] is { Length: > 0 } configuredClientUrl ? configuredClientUrl : "http://localhost:4200";
+    }
+});
+builder.Services.Configure<Backend.Infrastructure.Email.EmailOptions>(builder.Configuration.GetSection(Backend.Infrastructure.Email.EmailOptions.SectionName));
+builder.Services.PostConfigure<Backend.Infrastructure.Email.EmailOptions>(options =>
+{
+    if (string.IsNullOrWhiteSpace(options.ClientUrl))
+    {
+        options.ClientUrl = builder.Configuration["ClientUrl"] is { Length: > 0 } configuredClientUrl ? configuredClientUrl : "http://localhost:4200";
+    }
+});
+builder.Services.AddScoped<Backend.Infrastructure.Email.IEmailQueue, Backend.Infrastructure.Email.EmailQueue>();
+builder.Services.AddSingleton<Backend.Infrastructure.Email.IEmailTemplates, Backend.Infrastructure.Email.EmailTemplates>();
+builder.Services.AddScoped<Backend.Infrastructure.Email.IEmailTransport, Backend.Infrastructure.Email.SmtpEmailTransport>();
+builder.Services.AddScoped<Backend.Infrastructure.Email.IEmailQueueProcessor, Backend.Infrastructure.Email.EmailQueueProcessor>();
+builder.Services.AddScoped<Backend.Infrastructure.Email.IEmailAdminService, Backend.Infrastructure.Email.EmailAdminService>();
+builder.Services.AddHostedService<Backend.Infrastructure.Email.EmailQueueWorker>();
+
+builder.Services.AddHttpClient<Backend.Infrastructure.Payments.IPayFastService, Backend.Infrastructure.Payments.PayFastService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+
+builder.Services.Configure<Backend.Infrastructure.Storage.StorageOptions>(
+    builder.Configuration.GetSection(Backend.Infrastructure.Storage.StorageOptions.SectionName));
+var storageOptions = builder.Configuration.GetSection(Backend.Infrastructure.Storage.StorageOptions.SectionName)
+    .Get<Backend.Infrastructure.Storage.StorageOptions>() ?? new Backend.Infrastructure.Storage.StorageOptions();
+if (storageOptions.UseSupabase)
+{
+    builder.Services.AddHttpClient<Backend.Infrastructure.Storage.IFileStorage, Backend.Infrastructure.Storage.SupabaseFileStorage>();
+}
+else
+{
+    builder.Services.AddSingleton<Backend.Infrastructure.Storage.IFileStorage, Backend.Infrastructure.Storage.LocalFileStorage>();
+}
 
 builder.Services.AddCors(options =>
 {
@@ -82,10 +177,19 @@ builder.Services
     .AddControllers()
     .AddJsonOptions(options =>
     {
+        // Enum values (e.g. UserRole) serialize/deserialize as "student", "parent", etc.
+        // — matching the Angular UserRole enum exactly, so no casing translation is needed.
         options.JsonSerializerOptions.Converters.Add(
             new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
     });
 
+// ---------------------------------------------------------------------------
+// OpenAPI — native ASP.NET Core generation (Microsoft.AspNetCore.OpenApi),
+// with Swashbuckle used only for the Swagger UI viewer, not document
+// generation. Swashbuckle's own AddSwaggerGen()/OpenApiReference APIs are
+// NOT used here — Microsoft.OpenApi v2 (pulled in by Swashbuckle 10.x on
+// .NET 10) removed the old Reference-based security scheme API entirely.
+// ---------------------------------------------------------------------------
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
@@ -97,7 +201,7 @@ app.UseCors("AllowClient");
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi(); // serves /openapi/v1.json
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/openapi/v1.json", "Backend API v1");
@@ -110,14 +214,27 @@ if (app.Environment.IsDevelopment())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
     await Backend.Infrastructure.Data.DevDataSeeder.SeedAsync(db, hasher);
+    var storage = scope.ServiceProvider.GetRequiredService<Backend.Infrastructure.Storage.IFileStorage>();
+    await Backend.Infrastructure.Data.TutorModuleSeeder.SeedAsync(db, storage);
 }
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
 
+/// <summary>
+/// Registers the Bearer scheme in the generated OpenAPI document so Swagger UI
+/// shows an "Authorize" option. Paste an access token from /api/auth/login there.
+/// Note: this declares the scheme at the document level; if you also want the
+/// padlock icon on individual protected endpoints, that requires an operation
+/// transformer too — left out here since Microsoft.OpenApi's per-operation
+/// security-requirement API is still shifting release to release. Test
+/// protected endpoints via a manual "Authorization: Bearer <token>" header
+/// in Swagger UI's request editor, curl, or Postman in the meantime.
+/// </summary>
 internal sealed class BearerSecuritySchemeTransformer(IAuthenticationSchemeProvider authenticationSchemeProvider)
     : IOpenApiDocumentTransformer
 {

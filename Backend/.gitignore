@@ -15,3 +15,9 @@ appsettings.*.local.json
 ## IDE
 .vs/
 .vscode/
+
+## Uploaded verification documents (local dev storage)
+App_Data/
+
+## Local email pickup folder (dev)
+App_Data/mail-pickup/
