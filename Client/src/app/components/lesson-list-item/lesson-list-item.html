@@ -1,13 +1,14 @@
-<div class="lesson-row d-flex align-items-center justify-content-between">
-  <div class="d-flex align-items-center gap-3">
-    <app-avatar [name]="lesson.tutorName" size="sm"></app-avatar>
-    <div>
-      <div class="lesson-subject">
-        {{ lesson.subjectName }}
-        <span class="text-muted fw-normal" *ngIf="showStudentName"> · {{ lesson.studentName }}</span>
-      </div>
-      <div class="lesson-meta">with {{ lesson.tutorName }} · {{ lesson.scheduledAt | date: 'medium' }}</div>
+<div class="lesson-row">
+  <app-avatar [name]="lesson.tutorName"></app-avatar>
+  <div class="lesson-main">
+    <div class="lesson-title">
+      {{ lesson.subjectName }}
+      <app-status-badge text="Upcoming" variant="info"></app-status-badge>
+    </div>
+    <div class="lesson-meta">
+      <ng-container *ngIf="showStudentName">{{ lesson.studentName }} · </ng-container>with {{ lesson.tutorName }} ·
+      {{ lesson.scheduledAt | date: 'EEE, MMM d · h:mm a' }}
     </div>
   </div>
-  <div class="lesson-price">${{ lesson.price }}</div>
+  <div class="lesson-price">{{ lesson.price | currency: 'ZAR' : 'R' : '1.0-2' }}</div>
 </div>

@@ -1,24 +1,39 @@
-.lesson-row {
-  padding: 0.85rem 0;
+:host {
+  display: block;
   border-bottom: 1px solid var(--tl-border);
 }
-.lesson-row:last-child {
+
+:host(:last-child) {
   border-bottom: none;
 }
 
-.lesson-subject {
-  font-weight: 600;
-  color: var(--tl-text-strong);
-  font-size: 0.9rem;
+.lesson-row {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.8125rem 1.25rem;
+}
+
+.lesson-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.lesson-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-weight: 700;
 }
 
 .lesson-meta {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--tl-text-muted);
-  margin-top: 0.1rem;
+  margin-top: 0.1875rem;
 }
 
 .lesson-price {
-  font-weight: 600;
-  color: var(--tl-text-strong);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }

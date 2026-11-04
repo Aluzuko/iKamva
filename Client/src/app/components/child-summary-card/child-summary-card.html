@@ -1,28 +1,24 @@
-<div class="child-card">
-  <div class="d-flex align-items-center gap-3 mb-3">
-    <app-avatar [name]="child.fullName" size="md"></app-avatar>
+<article class="child-card">
+  <div class="child-top">
+    <app-avatar [name]="child.fullName" size="lg"></app-avatar>
     <div>
-      <div class="child-name">{{ child.fullName }}</div>
-      <div class="child-year" *ngIf="child.yearLevel">{{ child.yearLevel }}</div>
+      <h3>{{ child.fullName }}</h3>
+      <p *ngIf="child.yearLevel">{{ child.yearLevel }}</p>
     </div>
   </div>
 
-  <div class="d-flex gap-3 mb-3">
-    <div class="mini-stat">
-      <div class="mini-stat-value">{{ child.upcomingCount }}</div>
-      <div class="mini-stat-label">Upcoming</div>
-    </div>
-    <div class="mini-stat">
-      <div class="mini-stat-value">{{ child.completedCount }}</div>
-      <div class="mini-stat-label">Completed</div>
-    </div>
-  </div>
-
-  <div class="d-flex flex-wrap gap-2 mb-3">
+  <div class="child-subjects" *ngIf="child.subjects.length">
     <app-subject-badge *ngFor="let subject of child.subjects" [name]="subject"></app-subject-badge>
   </div>
 
-  <a [routerLink]="['/parent/children', child.studentId]" class="view-details">
-    View details <i class="bi bi-chevron-right"></i>
-  </a>
-</div>
+  <div class="child-stats">
+    <div><strong>{{ child.upcomingCount }}</strong>Upcoming</div>
+    <div><strong>{{ child.completedCount }}</strong>Completed</div>
+  </div>
+
+  <div>
+    <a [routerLink]="['/parent/children', child.studentId]" class="btn btn-outline-ink btn-sm">
+      View progress <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    </a>
+  </div>
+</article>

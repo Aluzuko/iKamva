@@ -1,21 +1,22 @@
-<div class="history-row d-flex align-items-start justify-content-between">
-  <div class="d-flex align-items-start gap-3">
-    <app-avatar [name]="item.tutorName" size="sm"></app-avatar>
-    <div>
-      <div class="history-title">
-        {{ item.subjectName }}
-        <span class="text-muted fw-normal">with {{ item.tutorName }}</span>
-      </div>
-      <div class="history-meta">
-        {{ item.scheduledAt | date: 'MMM d, y · h:mm a' }} · {{ item.durationMinutes }} min
-      </div>
-      <p class="history-note" *ngIf="item.notes">"{{ item.notes }}"</p>
+<div class="history-row">
+  <app-avatar [name]="item.tutorName"></app-avatar>
+  <div class="history-main">
+    <div class="history-title">
+      {{ item.subjectName }}
+      <app-status-badge [text]="statusLabel" [variant]="statusVariant"></app-status-badge>
     </div>
+    <div class="history-meta">
+      with {{ item.tutorName }} · {{ item.scheduledAt | date: 'MMM d, y · h:mm a' }} · {{ item.durationMinutes }} min
+    </div>
+    <p class="history-note" *ngIf="item.notes">{{ item.notes }}</p>
   </div>
-  <div class="d-flex align-items-center gap-2 flex-shrink-0">
-    <app-status-badge [text]="statusLabel" [variant]="statusVariant"></app-status-badge>
-    <button type="button" class="btn btn-link btn-sm p-0" *ngIf="item.recordingUrl">
-      <i class="bi bi-play-circle me-1"></i>Watch
-    </button>
-  </div>
+  <a
+    class="btn btn-soft btn-sm"
+    *ngIf="item.recordingUrl"
+    [href]="item.recordingUrl"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    <i class="bi bi-play-fill" aria-hidden="true"></i>Recording
+  </a>
 </div>
