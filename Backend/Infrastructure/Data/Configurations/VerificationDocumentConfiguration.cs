@@ -13,6 +13,8 @@ public class VerificationDocumentConfiguration : IEntityTypeConfiguration<Verifi
 
         builder.Property(d => d.FileName).IsRequired().HasMaxLength(255);
         builder.Property(d => d.FileUrl).IsRequired().HasMaxLength(1000);
+        builder.Property(d => d.ContentType).HasMaxLength(100);
+        builder.HasIndex(d => new { d.TutorUserId, d.DocumentType }).IsUnique();
 
         builder.Property(d => d.DocumentType)
             .HasConversion<string>()

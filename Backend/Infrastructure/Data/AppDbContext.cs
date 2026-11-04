@@ -33,6 +33,22 @@ public class AppDbContext : DbContext
 
     public DbSet<Dispute> Disputes => Set<Dispute>();
 
+    public DbSet<TutorAvailabilitySlot> TutorAvailabilitySlots => Set<TutorAvailabilitySlot>();
+
+    public DbSet<LessonReview> LessonReviews => Set<LessonReview>();
+
+    public DbSet<Payout> Payouts => Set<Payout>();
+
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+
+    public DbSet<Message> Messages => Set<Message>();
+
+    public DbSet<PaymentAttempt> PaymentAttempts => Set<PaymentAttempt>();
+
+    public DbSet<EmailMessage> EmailMessages => Set<EmailMessage>();
+
+    public DbSet<EmailAttachment> EmailAttachments => Set<EmailAttachment>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
