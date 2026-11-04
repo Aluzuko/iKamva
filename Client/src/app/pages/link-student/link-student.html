@@ -1,63 +1,94 @@
-<h1 class="page-title">Link a Student</h1>
-<p class="page-subtitle mb-4">Connect your child's account to your family profile</p>
+<app-page-header
+  title="Link a Student"
+  subtitle="Connect your child's account to follow their lessons and pay invoices"
+></app-page-header>
 
-<div class="link-card">
-  <div class="tab-switch mb-4">
-    <button type="button" class="tab-btn" [class.active]="activeTab() === 'invite'" (click)="setTab('invite')">
-      <i class="bi bi-envelope me-1"></i>Invite by Email
-    </button>
-    <button type="button" class="tab-btn" [class.active]="activeTab() === 'code'" (click)="setTab('code')">
-      <i class="bi bi-link-45deg me-1"></i>Link by Code
-    </button>
+<div class="page-body">
+  <div class="grid-2">
+    <section class="panel panel-flush">
+      <div class="panel-head"><h2>Invite by email</h2></div>
+      <form class="link-form" [formGroup]="inviteForm" (ngSubmit)="submitInvite()" novalidate>
+        <p class="form-text m-0">If your child doesn't have an account yet, they'll be linked as soon as they sign up with this email.</p>
+
+        <div>
+          <label for="invite-email" class="form-label">Child's email address</label>
+          <input
+            id="invite-email"
+            type="email"
+            class="form-control"
+            [class.is-invalid]="invalid(inviteForm, 'email')"
+            formControlName="email"
+            autocomplete="off"
+            aria-describedby="invite-email-error"
+          />
+          <div class="invalid-feedback" id="invite-email-error" *ngIf="invalid(inviteForm, 'email')">
+            Enter an email address like name&#64;example.com.
+          </div>
+        </div>
+
+        <div>
+          <label for="relationship" class="form-label">Your relationship</label>
+          <select id="relationship" class="form-select" formControlName="relationship">
+            <option value="parent">Parent</option>
+            <option value="guardian">Guardian</option>
+          </select>
+        </div>
+
+        <div class="notice" [ngClass]="inviteResult()!.kind === 'success' ? 'notice-success' : 'notice-error'" role="status" *ngIf="inviteResult()">
+          <i class="bi" [ngClass]="inviteResult()!.kind === 'success' ? 'bi-check-circle' : 'bi-exclamation-circle'" aria-hidden="true"></i>
+          <span>{{ inviteResult()!.text }}</span>
+        </div>
+
+        <div class="text-end">
+          <button type="submit" class="btn btn-primary-role" [disabled]="inviting()">
+            <i class="bi bi-envelope" aria-hidden="true"></i>{{ inviting() ? 'Sending' : 'Send invite' }}
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel panel-flush">
+      <div class="panel-head"><h2>Use a link code</h2></div>
+      <form class="link-form" [formGroup]="codeForm" (ngSubmit)="submitCode()" novalidate>
+        <p class="form-text m-0">Your child can find their 8-character code on their Profile page.</p>
+
+        <div>
+          <label for="link-code" class="form-label">Link code</label>
+          <input
+            id="link-code"
+            type="text"
+            class="form-control code-input"
+            [class.is-invalid]="invalid(codeForm, 'code')"
+            formControlName="code"
+            maxlength="8"
+            autocomplete="off"
+            aria-describedby="link-code-error"
+          />
+          <div class="invalid-feedback" id="link-code-error" *ngIf="invalid(codeForm, 'code')">
+            Link codes are 8 letters and numbers.
+          </div>
+        </div>
+
+        <div class="notice" [ngClass]="codeResult()!.kind === 'success' ? 'notice-success' : 'notice-error'" role="status" *ngIf="codeResult()">
+          <i class="bi" [ngClass]="codeResult()!.kind === 'success' ? 'bi-check-circle' : 'bi-exclamation-circle'" aria-hidden="true"></i>
+          <span>{{ codeResult()!.text }}</span>
+        </div>
+
+        <div class="text-end">
+          <button type="submit" class="btn btn-primary-role" [disabled]="linking()">
+            <i class="bi bi-link-45deg" aria-hidden="true"></i>{{ linking() ? 'Linking' : 'Link student' }}
+          </button>
+        </div>
+      </form>
+    </section>
   </div>
 
-  <div class="auth-alert-success mb-3" *ngIf="submitted()">
-    <i class="bi bi-check-circle me-1"></i>
-    {{ activeTab() === 'invite' ? 'Invitation sent.' : 'Student linked to your account.' }}
-  </div>
-
-  <form *ngIf="activeTab() === 'invite'" [formGroup]="inviteForm" (ngSubmit)="submitInvite()" novalidate>
-    <p class="text-muted small mb-3">
-      Enter your child's email address. They'll receive an invitation to link their iKamva account to your
-      family profile.
-    </p>
-
-    <div class="mb-3">
-      <label class="auth-form-label">Student Email Address</label>
-      <input type="email" class="form-control" formControlName="email" placeholder="student@email.com" />
-    </div>
-
-    <div class="mb-4">
-      <label class="auth-form-label">Relationship</label>
-      <select class="form-select" formControlName="relationship">
-        <option value="parent">Parent / Guardian</option>
-        <option value="guardian">Guardian</option>
-      </select>
-    </div>
-
-    <button type="submit" class="btn btn-primary-role w-100" [disabled]="submitting()">Send Invitation</button>
-  </form>
-
-  <form *ngIf="activeTab() === 'code'" [formGroup]="codeForm" (ngSubmit)="submitCode()" novalidate>
-    <p class="text-muted small mb-3">
-      Ask your child for their student link code (found on their profile page) and enter it below.
-    </p>
-
-    <div class="mb-4">
-      <label class="auth-form-label">Student Link Code</label>
-      <input type="text" class="form-control text-uppercase" formControlName="code" placeholder="ALEX2026" />
-    </div>
-
-    <button type="submit" class="btn btn-primary-role w-100" [disabled]="submitting()">Link Student</button>
-  </form>
-</div>
-
-<div class="panel mt-3">
-  <div class="detail-label mb-2">What you'll be able to do:</div>
-  <ul class="benefits-list">
-    <li><i class="bi bi-check-circle-fill me-2"></i>View your child's upcoming and past lessons</li>
-    <li><i class="bi bi-check-circle-fill me-2"></i>Watch lesson recordings and read tutor notes</li>
-    <li><i class="bi bi-check-circle-fill me-2"></i>Make payments on behalf of your child</li>
-    <li><i class="bi bi-check-circle-fill me-2"></i>Receive notifications about lesson updates</li>
-  </ul>
+  <section class="panel">
+    <h2 class="section-title mb-2">Once linked, you can</h2>
+    <ul class="benefits">
+      <li><i class="bi bi-check2" aria-hidden="true"></i>See your child's upcoming and past lessons</li>
+      <li><i class="bi bi-check2" aria-hidden="true"></i>Watch lesson recordings and read tutor notes</li>
+      <li><i class="bi bi-check2" aria-hidden="true"></i>Pay invoices on your child's behalf</li>
+    </ul>
+  </section>
 </div>

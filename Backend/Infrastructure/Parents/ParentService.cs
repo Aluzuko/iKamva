@@ -10,12 +10,14 @@ namespace Backend.Infrastructure.Parents;
 public class ParentService : IParentService
 {
     private readonly AppDbContext _db;
-    private readonly IEmailSender _email;
+    private readonly IEmailQueue _emails;
+    private readonly IEmailTemplates _templates;
 
-    public ParentService(AppDbContext db, IEmailSender email)
+    public ParentService(AppDbContext db, IEmailQueue emails, IEmailTemplates templates)
     {
         _db = db;
-        _email = email;
+        _emails = emails;
+        _templates = templates;
     }
 
     public async Task<FamilyDashboardResponse> GetDashboardAsync(Guid parentUserId, CancellationToken ct = default)
@@ -137,7 +139,7 @@ public class ParentService : IParentService
                 StudentId = student.Id,
                 StudentName = student.FullName,
                 ThisMonthAmount = thisMonthInvoice?.AmountTotal ?? 0m,
-                Status = thisMonthInvoice?.Status ?? InvoiceStatus.Paid,
+                Status = thisMonthInvoice?.Status ?? InvoiceStatus.Pending,
                 PendingInvoiceId = thisMonthInvoice is { Status: InvoiceStatus.Pending } ? thisMonthInvoice.Id : null,
             });
         }
@@ -193,13 +195,21 @@ public class ParentService : IParentService
         };
 
         _db.ParentStudentLinks.Add(link);
-        await _db.SaveChangesAsync(ct);
 
-        await _email.SendAsync(
-            normalizedEmail,
-            "You've been invited to iKamva",
-            "<p>You've been invited to link your iKamva account to a parent profile. Sign in (or register) to accept.</p>",
-            ct);
+        var parentName = await _db.Users.Where(u => u.Id == parentUserId).Select(u => u.FullName).FirstOrDefaultAsync(ct) ?? "A parent";
+        await _emails.StageAsync(new EmailRequest
+        {
+            Category = EmailCategory.StudentInvite,
+            ToEmail = normalizedEmail,
+            RecipientUserId = existingStudent?.Id,
+            Content = _templates.StudentInvite(parentName, normalizedEmail),
+            RelatedEntityType = "ParentStudentLink",
+            RelatedEntityId = link.Id,
+            IdempotencyKey = $"student-invite:{parentUserId}:{normalizedEmail}",
+            CreatedByUserId = parentUserId,
+        }, ct);
+
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task<bool> LinkByCodeAsync(Guid parentUserId, string code, CancellationToken ct = default)

@@ -1,0 +1,63 @@
+<app-page-header title="Payment" [backLink]="['/parent/payments']" backLabel="Payments"></app-page-header>
+
+<div class="page-body">
+  <section class="panel result" [attr.aria-busy]="view() === 'checking'" aria-live="polite">
+    <ng-container [ngSwitch]="view()">
+      <ng-container *ngSwitchCase="'checking'">
+        <div class="loading-block" role="status">Confirming your payment with PayFast…</div>
+        <p class="muted">This usually takes a few seconds. You can leave this page; the invoice updates on its own.</p>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="'paid'">
+        <span class="icon ok" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+        <h2>Payment received</h2>
+        <p *ngIf="attempt() as a"><strong>{{ a.amount | currency: 'ZAR' : 'R' : '1.2-2' }}</strong> for {{ a.description }}. A receipt is on its way from PayFast.</p>
+        <div class="actions">
+          <a routerLink="/parent/payments" class="btn btn-primary-role">Back to payments</a>
+          <a routerLink="/parent/dashboard" class="btn btn-outline-ink">Dashboard</a>
+        </div>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="'waiting'">
+        <span class="icon wait" aria-hidden="true"><i class="bi bi-hourglass-split"></i></span>
+        <h2>Still waiting for confirmation</h2>
+        <p>PayFast hasn’t confirmed this payment yet. If you completed it, the invoice will show as paid shortly. Don’t pay again.</p>
+        <div class="actions">
+          <button type="button" class="btn btn-primary-role" (click)="checkAgain()">Check again</button>
+          <a routerLink="/parent/payments" class="btn btn-outline-ink">Back to payments</a>
+        </div>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="'cancelled'">
+        <span class="icon neutral" aria-hidden="true"><i class="bi bi-x-lg"></i></span>
+        <h2>Payment cancelled</h2>
+        <p>Nothing was charged. The invoice is still waiting to be paid.</p>
+        <div class="actions">
+          <button type="button" class="btn btn-amber" *ngIf="attempt()" [disabled]="retrying()" (click)="retry()">
+            <span class="spinner-inline" *ngIf="retrying()" aria-hidden="true"></span>{{ retrying() ? 'Opening PayFast' : 'Try again' }}
+          </button>
+          <a routerLink="/parent/payments" class="btn btn-outline-ink">Back to payments</a>
+        </div>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="'failed'">
+        <span class="icon bad" aria-hidden="true"><i class="bi bi-exclamation-lg"></i></span>
+        <h2>Payment didn’t go through</h2>
+        <p>PayFast couldn’t complete the payment, so nothing was charged. Try again or use another payment method.</p>
+        <div class="actions">
+          <button type="button" class="btn btn-amber" [disabled]="retrying()" (click)="retry()">
+            <span class="spinner-inline" *ngIf="retrying()" aria-hidden="true"></span>{{ retrying() ? 'Opening PayFast' : 'Try again' }}
+          </button>
+          <a routerLink="/parent/payments" class="btn btn-outline-ink">Back to payments</a>
+        </div>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="'missing'">
+        <span class="icon neutral" aria-hidden="true"><i class="bi bi-question-lg"></i></span>
+        <h2>We couldn’t find this payment</h2>
+        <p>Check your payments page for the latest status.</p>
+        <div class="actions"><a routerLink="/parent/payments" class="btn btn-primary-role">Go to payments</a></div>
+      </ng-container>
+    </ng-container>
+  </section>
+</div>

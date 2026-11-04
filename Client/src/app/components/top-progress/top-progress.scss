@@ -1,0 +1,51 @@
+.top-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 2000;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.top-progress.on {
+  opacity: 1;
+}
+
+.bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 40%;
+  background: var(--tl-accent);
+  border-radius: 0 2px 2px 0;
+  animation: tl-progress 1.1s ease-in-out infinite;
+}
+
+@keyframes tl-progress {
+  0% {
+    left: -40%;
+    width: 40%;
+  }
+  60% {
+    left: 60%;
+    width: 50%;
+  }
+  100% {
+    left: 100%;
+    width: 30%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+    left: 0;
+    width: 100%;
+    opacity: 0.8;
+  }
+}

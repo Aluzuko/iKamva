@@ -1,0 +1,32 @@
+:host {
+  display: block;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--tl-border);
+  font-size: 0.9rem;
+}
+.detail-row:last-of-type {
+  border-bottom: none;
+}
+
+.detail-label {
+  color: var(--tl-text-muted);
+  font-weight: 600;
+}
+
+.link-code-btn {
+  border: 1px dashed var(--tl-border);
+  background: var(--tl-bg-subtle);
+  border-radius: var(--tl-radius-sm);
+  padding: 0.25rem 0.6rem;
+  font-family: monospace;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}

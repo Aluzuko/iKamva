@@ -1,18 +1,30 @@
-<h1 class="page-title">My Children</h1>
-<p class="page-subtitle mb-4">View and manage each linked student</p>
+<app-page-header
+  title="My Children"
+  [subtitle]="loading() ? null : children().length + (children().length === 1 ? ' linked student' : ' linked students')"
+>
+  <a routerLink="/parent/link-student" class="btn btn-primary-role">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i><span>Link<span class="long"> Student</span></span>
+  </a>
+</app-page-header>
 
-<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading your children…</div>
 
-<div *ngIf="!loading()">
-  <div class="row g-3" *ngIf="children().length; else empty">
-    <div class="col-12 col-md-6 col-xl-4" *ngFor="let child of children()">
-      <app-child-summary-card [child]="child"></app-child-summary-card>
-    </div>
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load your children. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
   </div>
-  <ng-template #empty>
-    <div class="panel text-center py-5">
-      <i class="bi bi-people fs-1 text-muted"></i>
-      <p class="text-muted mt-2 mb-0">No children linked yet.</p>
+
+  <ng-container *ngIf="!loading() && !failed()">
+    <div class="grid-3" *ngIf="children().length; else empty">
+      <app-child-summary-card *ngFor="let child of children()" [child]="child"></app-child-summary-card>
     </div>
-  </ng-template>
+    <ng-template #empty>
+      <div class="empty-block">
+        <h3>No children linked yet</h3>
+        <p>Link your child's account with their email or link code to follow their lessons and pay invoices.</p>
+        <a routerLink="/parent/link-student" class="btn btn-primary-role mt-3">Link a student</a>
+      </div>
+    </ng-template>
+  </ng-container>
 </div>

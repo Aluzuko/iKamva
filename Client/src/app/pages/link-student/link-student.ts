@@ -1,25 +1,27 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ParentApiService } from '../../services/parent-api.service';
 import { LinkRelationship } from '../../models/parent.model';
+import { PageHeader } from '../../components/page-header/page-header';
 
-type Tab = 'invite' | 'code';
+type Result = { kind: 'success' | 'error'; text: string } | null;
 
 @Component({
   selector: 'app-link-student',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, PageHeader],
   templateUrl: './link-student.html',
   styleUrl: './link-student.scss',
 })
 export class LinkStudent {
-  readonly activeTab = signal<Tab>('invite');
-  readonly submitted = signal(false);
-  readonly submitting = signal(false);
-
   readonly inviteForm: FormGroup;
   readonly codeForm: FormGroup;
+  readonly inviting = signal(false);
+  readonly linking = signal(false);
+  readonly inviteResult = signal<Result>(null);
+  readonly codeResult = signal<Result>(null);
 
   constructor(private readonly fb: FormBuilder, private readonly parentApi: ParentApiService) {
     this.inviteForm = this.fb.group({
@@ -28,13 +30,13 @@ export class LinkStudent {
     });
 
     this.codeForm = this.fb.group({
-      code: ['', [Validators.required]],
+      code: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9]{8}$/)]],
     });
   }
 
-  setTab(tab: Tab): void {
-    this.activeTab.set(tab);
-    this.submitted.set(false);
+  invalid(form: FormGroup, name: string): boolean {
+    const c = form.get(name);
+    return !!c && c.invalid && (c.dirty || c.touched);
   }
 
   submitInvite(): void {
@@ -43,12 +45,22 @@ export class LinkStudent {
       return;
     }
 
-    this.submitting.set(true);
+    this.inviting.set(true);
+    this.inviteResult.set(null);
     const { email, relationship } = this.inviteForm.getRawValue();
-    this.parentApi.inviteStudent(email!, relationship as LinkRelationship).subscribe(() => {
-      this.submitting.set(false);
-      this.submitted.set(true);
-      this.inviteForm.reset({ email: '', relationship: 'parent' });
+    this.parentApi.inviteStudent(email.trim(), relationship as LinkRelationship).subscribe({
+      next: () => {
+        this.inviting.set(false);
+        this.inviteResult.set({
+          kind: 'success',
+          text: `Invite sent to ${email.trim()}. They'll be linked once they accept or sign up with that email.`,
+        });
+        this.inviteForm.reset({ email: '', relationship: 'parent' });
+      },
+      error: () => {
+        this.inviting.set(false);
+        this.inviteResult.set({ kind: 'error', text: "The invite couldn't be sent. Try again." });
+      },
     });
   }
 
@@ -58,11 +70,25 @@ export class LinkStudent {
       return;
     }
 
-    this.submitting.set(true);
-    this.parentApi.linkByCode(this.codeForm.getRawValue().code!).subscribe(() => {
-      this.submitting.set(false);
-      this.submitted.set(true);
-      this.codeForm.reset({ code: '' });
+    this.linking.set(true);
+    this.codeResult.set(null);
+    const code = (this.codeForm.getRawValue().code as string).trim().toUpperCase();
+    this.parentApi.linkByCode(code).subscribe({
+      next: () => {
+        this.linking.set(false);
+        this.codeResult.set({ kind: 'success', text: 'Student linked. You can now see them under My Children.' });
+        this.codeForm.reset({ code: '' });
+      },
+      error: (err: HttpErrorResponse) => {
+        this.linking.set(false);
+        this.codeResult.set({
+          kind: 'error',
+          text:
+            err.status === 404
+              ? "No student found with that code. Check it on your child's Profile page."
+              : "The student couldn't be linked. Try again.",
+        });
+      },
     });
   }
 }

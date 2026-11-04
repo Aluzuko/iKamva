@@ -1,1 +1,191 @@
-<p>profile works!</p>
+<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
+
+<div *ngIf="!loading() && profile() as data">
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <app-avatar [name]="data.fullName" size="lg"></app-avatar>
+    <div>
+      <h1 class="page-title mb-0">{{ data.fullName }}</h1>
+      <p class="page-subtitle text-capitalize">{{ data.role }} account</p>
+    </div>
+  </div>
+
+  <div class="panel mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="section-title mb-0">Personal Info</h2>
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        (click)="editingPersonal.set(!editingPersonal())"
+      >
+        {{ editingPersonal() ? 'Cancel' : 'Edit' }}
+      </button>
+    </div>
+
+    <form *ngIf="editingPersonal()" [formGroup]="personalForm" (ngSubmit)="savePersonal()" novalidate>
+      <div class="mb-3">
+        <label class="auth-form-label">Full name</label>
+        <input type="text" class="form-control" formControlName="fullName" />
+      </div>
+      <button type="submit" class="btn btn-primary-role" [disabled]="savingPersonal()">Save</button>
+    </form>
+
+    <div *ngIf="!editingPersonal()">
+      <div class="detail-row">
+        <span class="detail-label">Full name</span>
+        <span>{{ data.fullName }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Member since</span>
+        <span>{{ data.createdAt | date: 'MMM d, y' }}</span>
+      </div>
+    </div>
+
+    <hr class="my-3" />
+
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <div class="fw-semibold">{{ data.email }}</div>
+        <span class="text-muted small" *ngIf="!data.isEmailVerified">Unverified</span>
+      </div>
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="toggleEmailForm()">
+        {{ editingEmail() ? 'Cancel' : 'Change Email' }}
+      </button>
+    </div>
+
+    <form *ngIf="editingEmail()" [formGroup]="emailForm" (ngSubmit)="submitEmailChange()" novalidate class="mt-3">
+      <div class="alert alert-danger py-2 small mb-3" *ngIf="emailError()">{{ emailError() }}</div>
+      <div class="mb-3">
+        <label class="auth-form-label">New email</label>
+        <input type="email" class="form-control" formControlName="newEmail" />
+      </div>
+      <div class="mb-3">
+        <label class="auth-form-label">Current password</label>
+        <input type="password" class="form-control" formControlName="currentPassword" />
+      </div>
+      <button type="submit" class="btn btn-primary-role" [disabled]="savingEmail()">Update Email</button>
+    </form>
+  </div>
+
+  <div class="panel mb-4">
+    <h2 class="section-title">Security</h2>
+
+    <div class="d-flex justify-content-between align-items-center">
+      <div class="text-muted small">Change your account password</div>
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="togglePasswordForm()">
+        {{ changingPassword() ? 'Cancel' : 'Change Password' }}
+      </button>
+    </div>
+
+    <form
+      [formGroup]="passwordForm"
+      (ngSubmit)="submitPasswordChange()"
+      novalidate
+      class="mt-3"
+      *ngIf="changingPassword()"
+    >
+      <div class="auth-alert-success mb-3" *ngIf="passwordSuccess()">
+        <i class="bi bi-check-circle me-1"></i>Password updated.
+      </div>
+      <div class="alert alert-danger py-2 small mb-3" *ngIf="passwordError()">{{ passwordError() }}</div>
+
+      <div class="mb-3">
+        <label class="auth-form-label">Current password</label>
+        <input type="password" class="form-control" formControlName="currentPassword" />
+      </div>
+      <div class="mb-3">
+        <label class="auth-form-label">New password</label>
+        <input type="password" class="form-control" formControlName="newPassword" />
+      </div>
+      <div class="mb-3">
+        <label class="auth-form-label">Confirm new password</label>
+        <input type="password" class="form-control" formControlName="confirmNewPassword" />
+        <div class="invalid-feedback d-block" *ngIf="passwordForm.hasError('passwordMismatch')">
+          Passwords do not match.
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary-role" [disabled]="savingPassword()">Update Password</button>
+    </form>
+
+    <hr class="my-3" />
+
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <div class="fw-semibold">Sign out everywhere</div>
+        <div class="text-muted small">Ends every active session, including this one</div>
+      </div>
+      <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="signingOutAll()" (click)="signOutAllDevices()">
+        Sign Out of All Devices
+      </button>
+    </div>
+  </div>
+
+  <div class="panel" *ngIf="data.role === 'student' || data.role === 'tutor'">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="section-title mb-0">Role Info</h2>
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="toggleRoleInfoEdit()">
+        {{ editingRoleInfo() ? 'Cancel' : 'Edit' }}
+      </button>
+    </div>
+
+    <form *ngIf="editingRoleInfo()" [formGroup]="roleInfoForm" (ngSubmit)="saveRoleInfo()" novalidate>
+      <div class="mb-3" *ngIf="data.role === 'tutor'">
+        <label class="auth-form-label">Bio</label>
+        <textarea class="form-control" rows="3" formControlName="bio"></textarea>
+      </div>
+      <div class="mb-3" *ngIf="data.role === 'tutor'">
+        <label class="auth-form-label">Hourly rate ($)</label>
+        <input type="number" class="form-control" formControlName="hourlyRate" />
+      </div>
+      <div class="mb-3" *ngIf="data.role === 'student'">
+        <label class="auth-form-label">Year level</label>
+        <input type="text" class="form-control" formControlName="yearLevel" placeholder="Year 11" />
+      </div>
+      <button type="submit" class="btn btn-primary-role" [disabled]="savingRoleInfo()">Save</button>
+    </form>
+
+    <div *ngIf="!editingRoleInfo()">
+      <ng-container *ngIf="data.role === 'student'">
+        <div class="detail-row" *ngIf="data.yearLevel">
+          <span class="detail-label">Year level</span>
+          <span>{{ data.yearLevel }}</span>
+        </div>
+        <div class="detail-row" *ngIf="data.linkCode">
+          <span class="detail-label">Link code</span>
+          <button type="button" class="link-code-btn" (click)="copyLinkCode(data.linkCode!)">
+            {{ data.linkCode }}
+            <i class="bi" [ngClass]="linkCodeCopied() ? 'bi-check-lg' : 'bi-clipboard'"></i>
+          </button>
+        </div>
+        <div class="detail-row align-items-start" *ngIf="data.enrolledSubjects?.length">
+          <span class="detail-label">Subjects</span>
+          <div class="d-flex flex-wrap gap-2">
+            <app-subject-badge *ngFor="let subject of data.enrolledSubjects" [name]="subject"></app-subject-badge>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="data.role === 'tutor'">
+        <div class="detail-row" *ngIf="data.verificationStatus as status">
+          <span class="detail-label">Verification</span>
+          <app-status-badge [text]="statusLabel(status)" [variant]="verificationVariant(status)"></app-status-badge>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Hourly rate</span>
+          <span>${{ data.hourlyRate }}/hr</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Experience</span>
+          <span>{{ data.yearsExperience }} years</span>
+        </div>
+        <div class="detail-row align-items-start" *ngIf="data.tutorSubjects?.length">
+          <span class="detail-label">Subjects</span>
+          <div class="d-flex flex-wrap gap-2">
+            <app-subject-badge *ngFor="let subject of data.tutorSubjects" [name]="subject"></app-subject-badge>
+          </div>
+        </div>
+        <p class="text-muted small mt-2 mb-0" *ngIf="data.bio">{{ data.bio }}</p>
+      </ng-container>
+    </div>
+  </div>
+</div>

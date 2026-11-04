@@ -1,57 +1,31 @@
 :host {
   display: block;
-  max-width: 640px;
 }
 
-.link-card {
-  background: #fff;
-  border-radius: var(--tl-radius-lg);
-  box-shadow: var(--tl-shadow-sm);
-  padding: 2rem;
-}
-
-.tab-switch {
+.link-form {
+  padding: 1.125rem 1.25rem 1.25rem;
   display: flex;
-  background: var(--tl-bg-subtle);
-  border-radius: var(--tl-radius-md);
-  padding: 0.25rem;
+  flex-direction: column;
+  gap: 0.875rem;
 }
 
-.tab-btn {
-  flex: 1;
-  border: none;
-  background: transparent;
-  padding: 0.55rem 1rem;
-  border-radius: var(--tl-radius-sm);
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--tl-text-muted);
-}
-.tab-btn.active {
-  background: #fff;
-  color: var(--tl-text-strong);
-  box-shadow: var(--tl-shadow-sm);
-}
-
-.detail-label {
-  font-size: 0.72rem;
+.code-input {
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--tl-text-muted);
-  font-weight: 600;
+  letter-spacing: 0.12em;
+  font-weight: 700;
 }
 
-.benefits-list {
+.benefits {
   list-style: none;
   padding: 0;
   margin: 0;
-  font-size: 0.875rem;
-  color: var(--tl-text-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: var(--tl-text);
 }
-.benefits-list li {
-  padding: 0.3rem 0;
-  color: #16a34a;
-}
-.benefits-list li i {
-  color: #16a34a;
+
+.benefits i {
+  color: #1d7a4f;
+  margin-right: 0.5rem;
 }

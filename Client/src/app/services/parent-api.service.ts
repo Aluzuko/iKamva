@@ -1,18 +1,20 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
+import { SILENT_REQUEST } from './loading.service';
 import { Observable } from 'rxjs';
 import {
   ChildSummary,
   FamilyDashboard,
   LinkRelationship,
+  PaymentAttempt,
+  PaymentRedirect,
   PaymentsOverview,
   StudentDetail,
 } from '../models/parent.model';
-import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ParentApiService {
-  private readonly baseUrl = `${environment.apiUrl}/parent`;
+  private readonly baseUrl = '/api/parent';
 
   constructor(private readonly http: HttpClient) {}
 
@@ -32,8 +34,15 @@ export class ParentApiService {
     return this.http.get<PaymentsOverview>(`${this.baseUrl}/payments`);
   }
 
-  payInvoice(invoiceId: string): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/payments/${invoiceId}/pay`, {});
+  startCheckout(invoiceId: string): Observable<PaymentRedirect> {
+    return this.http.post<PaymentRedirect>(`${this.baseUrl}/payments/${invoiceId}/checkout`, {});
+  }
+
+  getPaymentAttempt(attemptId: string, silent = false): Observable<PaymentAttempt> {
+    return this.http.get<PaymentAttempt>(
+      `${this.baseUrl}/payments/attempts/${attemptId}`,
+      silent ? { context: new HttpContext().set(SILENT_REQUEST, true) } : {}
+    );
   }
 
   inviteStudent(email: string, relationship: LinkRelationship): Observable<void> {

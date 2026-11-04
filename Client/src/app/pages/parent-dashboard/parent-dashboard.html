@@ -1,74 +1,102 @@
-<div *ngIf="loading()" class="text-center text-muted py-5">Loading dashboard…</div>
+<app-page-header
+  [title]="greeting"
+  [subtitle]="dashboard() ? dashboard()!.upcomingLessonsThisWeek + ' upcoming lessons this week' : null"
+>
+  <a routerLink="/parent/link-student" class="btn btn-primary-role">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i><span>Link<span class="long"> Student</span></span>
+  </a>
+</app-page-header>
 
-<div *ngIf="!loading() && dashboard() as data">
-  <div class="d-flex justify-content-between align-items-start mb-4">
-    <div>
-      <h1 class="page-title">Family Dashboard</h1>
-      <p class="page-subtitle">Manage your children's tutoring sessions</p>
-    </div>
-    <a routerLink="/parent/link-student" class="btn btn-primary-role">
-      <i class="bi bi-plus-lg me-1"></i>Link Student
-    </a>
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading your family dashboard…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load your dashboard. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
   </div>
 
-  <div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3">
-      <app-stat-card label="Children Linked" [value]="data.childrenLinked.toString()" icon="bi-people"></app-stat-card>
-    </div>
-    <div class="col-6 col-lg-3">
+  <ng-container *ngIf="!loading() && dashboard() as data">
+    <div class="stats-row">
+      <app-stat-card label="Children linked" [value]="data.childrenLinked.toString()" icon="bi-people" tone="slate" hint="On your account"></app-stat-card>
+      <app-stat-card label="Lessons this week" [value]="data.upcomingLessonsThisWeek.toString()" icon="bi-calendar-check" tone="teal" hint="Across all children"></app-stat-card>
       <app-stat-card
-        label="Upcoming Lessons"
-        [value]="data.upcomingLessonsThisWeek.toString()"
-        icon="bi-calendar-check"
-      ></app-stat-card>
-    </div>
-    <div class="col-6 col-lg-3">
-      <app-stat-card
-        label="Monthly Spend"
-        [value]="'$' + data.monthlySpend"
+        label="Monthly spend"
+        [value]="(data.monthlySpend | currency: 'ZAR' : 'R' : '1.0-0') ?? ''"
         icon="bi-credit-card"
+        tone="yellow"
         [trend]="{ percent: data.monthlySpendChangePercent, label: 'vs last month' }"
       ></app-stat-card>
-    </div>
-    <div class="col-6 col-lg-3">
       <app-stat-card
-        label="Total Sessions"
+        label="Total sessions"
         [value]="data.totalSessions.toString()"
-        icon="bi-journal-bookmark"
+        icon="bi-book"
+        tone="mint"
         [trend]="{ percent: data.totalSessionsChangePercent, label: 'vs last month' }"
       ></app-stat-card>
     </div>
-  </div>
 
-  <h2 class="section-title">Your Children</h2>
-  <div class="row g-3 mb-4">
-    <div class="col-12 col-md-6" *ngFor="let child of data.children">
-      <app-child-summary-card [child]="child"></app-child-summary-card>
-    </div>
-  </div>
+    <div class="grid-2-1">
+      <section class="feature-card" aria-label="Outstanding invoice" *ngIf="data.outstandingInvoice as invoice; else allPaid">
+        <div class="feature-main">
+          <div>
+            <span class="feature-tag">Invoice due</span>
+            <h2>{{ invoice.amount | currency: 'ZAR' : 'R' : '1.2-2' }}</h2>
+            <p class="feature-meta">{{ invoice.studentName }} · {{ invoice.periodDescription }}</p>
+          </div>
+          <button type="button" class="btn btn-amber btn-lg" [disabled]="paying()" (click)="payNow(invoice.invoiceId)">
+            <span class="spinner-inline" *ngIf="paying()" aria-hidden="true"></span>
+            <i class="bi bi-credit-card" *ngIf="!paying()" aria-hidden="true"></i>
+            {{ paying() ? 'Opening PayFast' : 'Pay now' }}
+          </button>
+        </div>
+        <div class="feature-foot" *ngIf="data.upcomingLessons.length">
+          <div *ngFor="let lesson of data.upcomingLessons.slice(0, 3)">
+            <strong>{{ lesson.studentName.split(' ')[0] }} · {{ lesson.subjectName }}</strong>
+            {{ lesson.scheduledAt | date: 'EEE, MMM d · h:mm a' }}
+          </div>
+        </div>
+      </section>
+      <ng-template #allPaid>
+        <section class="feature-card" aria-label="Invoices">
+          <div class="feature-main">
+            <div>
+              <span class="feature-tag">All paid</span>
+              <h2>You're up to date</h2>
+              <p class="feature-meta">No invoices are waiting for payment.</p>
+            </div>
+          </div>
+        </section>
+      </ng-template>
 
-  <div class="panel mb-4">
-    <h2 class="section-title">Upcoming Lessons</h2>
-    <div *ngIf="data.upcomingLessons.length; else noUpcoming">
-      <app-lesson-list-item
-        *ngFor="let lesson of data.upcomingLessons"
-        [lesson]="lesson"
-        [showStudentName]="true"
-      ></app-lesson-list-item>
+      <section class="panel quick-actions">
+        <h2>Quick actions</h2>
+        <a class="q1" routerLink="/parent/children"><i class="bi bi-people" aria-hidden="true"></i>View progress</a>
+        <a class="q2" routerLink="/parent/payments"><i class="bi bi-receipt" aria-hidden="true"></i>Payment history</a>
+        <a class="q3" routerLink="/parent/link-student"><i class="bi bi-link-45deg" aria-hidden="true"></i>Link a student</a>
+      </section>
     </div>
-    <ng-template #noUpcoming>
-      <p class="text-muted mb-0">No upcoming lessons scheduled.</p>
-    </ng-template>
-  </div>
 
-  <div class="panel outstanding-panel d-flex justify-content-between align-items-center" *ngIf="data.outstandingInvoice as invoice">
-    <div>
-      <div class="outstanding-title">Outstanding Invoice</div>
-      <div class="outstanding-meta">{{ invoice.periodDescription }}</div>
-    </div>
-    <div class="d-flex align-items-center gap-3">
-      <div class="outstanding-amount">${{ invoice.amount }}</div>
-      <button type="button" class="btn btn-primary-role" (click)="payNow(invoice.invoiceId)">Pay Now</button>
-    </div>
-  </div>
+    <section>
+      <h2 class="section-title">Your children</h2>
+      <div class="grid-2" *ngIf="data.children.length; else noChildren">
+        <app-child-summary-card *ngFor="let child of data.children" [child]="child"></app-child-summary-card>
+      </div>
+      <ng-template #noChildren>
+        <div class="empty-block">
+          <h3>No children linked yet</h3>
+          <p>Link your child's account with their email or link code to follow their lessons.</p>
+          <a routerLink="/parent/link-student" class="btn btn-primary-role mt-3">Link a student</a>
+        </div>
+      </ng-template>
+    </section>
+
+    <section class="row-list">
+      <div class="row-list-head">
+        <h2>Upcoming lessons</h2>
+        <a class="link-quiet" routerLink="/parent/children">View all</a>
+      </div>
+      <app-lesson-list-item *ngFor="let lesson of data.upcomingLessons" [lesson]="lesson" [showStudentName]="true"></app-lesson-list-item>
+      <p class="row-list-empty mb-0" *ngIf="!data.upcomingLessons.length">No upcoming lessons booked.</p>
+    </section>
+  </ng-container>
 </div>
