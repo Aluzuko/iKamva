@@ -1,4 +1,5 @@
 using Backend.Infrastructure.Admin;
+using Backend.Infrastructure.Tutors;
 using Backend.Models.Admin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,24 @@ namespace Backend.Controllers;
 public class AdminTutorsController : ControllerBase
 {
     private readonly ITutorAdminService _tutorAdmin;
+    private readonly ITutorProfileService _tutorProfiles;
 
-    public AdminTutorsController(ITutorAdminService tutorAdmin)
+    public AdminTutorsController(ITutorAdminService tutorAdmin, ITutorProfileService tutorProfiles)
     {
         _tutorAdmin = tutorAdmin;
+        _tutorProfiles = tutorProfiles;
+    }
+
+    [HttpGet("documents/{documentId:guid}/file")]
+    public async Task<IActionResult> DownloadDocument(Guid documentId, CancellationToken ct)
+    {
+        var file = await _tutorProfiles.OpenDocumentAsync(documentId, null, ct);
+        if (file is null)
+        {
+            return NotFound();
+        }
+        Response.Headers.XContentTypeOptions = "nosniff";
+        return File(file.Value.File.Content, file.Value.File.ContentType, file.Value.FileName);
     }
 
     [HttpGet]

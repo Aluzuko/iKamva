@@ -1,0 +1,51 @@
+<app-page-header
+  [title]="tutor()?.fullName || 'Tutor'"
+  subtitle="Profile, subjects and verification documents"
+  [backLink]="['/admin/tutors']"
+  backLabel="Tutors"
+></app-page-header>
+
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading tutor…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load this tutor. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <div class="empty-block" *ngIf="notFound()">
+    <h3>Tutor not found</h3>
+    <p>This tutor may have been removed, or the link is wrong.</p>
+  </div>
+
+  <app-tutor-review-card
+    *ngIf="!loading() && tutor() as t"
+    [tutor]="t"
+    [busy]="busy()"
+    [showDetailLink]="false"
+    (approve)="approve()"
+    (reject)="openReject()"
+  ></app-tutor-review-card>
+</div>
+
+<app-dialog
+  *ngIf="rejectOpen() && tutor() as t"
+  [title]="t.verificationStatus === 'approved' ? 'Revoke ' + t.fullName + '’s approval?' : 'Reject ' + t.fullName + '’s verification?'"
+  [description]="t.fullName + ' will see your reason and can upload new documents.'"
+  (closed)="rejectOpen.set(false)"
+>
+  <form id="detail-reject-form" [formGroup]="rejectForm" (ngSubmit)="confirmReject()" novalidate>
+    <label for="detail-reason" class="form-label">Reason</label>
+    <textarea id="detail-reason" class="form-control" rows="4" formControlName="reason" [class.is-invalid]="rejectInvalid" aria-describedby="detail-reason-error"></textarea>
+    <div class="invalid-feedback" id="detail-reason-error" *ngIf="rejectInvalid">
+      Give a reason of at least 5 characters so the tutor knows what to fix.
+    </div>
+  </form>
+  <ng-container dialog-actions>
+    <button type="button" class="btn btn-outline-ink" (click)="rejectOpen.set(false)">Cancel</button>
+    <button type="submit" form="detail-reject-form" class="btn btn-danger-solid" [disabled]="busy()">
+      <span class="spinner-inline" *ngIf="busy()" aria-hidden="true"></span>
+      {{ busy() ? 'Saving' : t.verificationStatus === 'approved' ? 'Revoke approval' : 'Reject verification' }}
+    </button>
+  </ng-container>
+</app-dialog>

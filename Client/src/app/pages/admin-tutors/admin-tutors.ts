@@ -1,139 +1,275 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { SubjectPricing, TutorDetail, TutorListItem } from '../../models/admin.model';
-import { AdminApiService } from '../../services/admin-api.service';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
+import { SubjectPricing, TutorDetail, TutorListItem, VerificationStatus } from '../../models/admin.model';
+import { Admin } from '../../services/admin';
+import { NotificationService } from '../../services/notification.service';
+import { PageHeader } from '../../components/page-header/page-header';
 import { Avatar } from '../../components/avatar/avatar';
-import { BadgeVariant, StatusBadge } from '../../components/status-badge/status-badge';
-import { SubjectBadge } from '../../components/subject-badge/subject-badge';
+import { StatusBadge } from '../../components/status-badge/status-badge';
+import { Dialog } from '../../components/dialog/dialog';
+import { Pager, pageOf } from '../../components/pager/pager';
+import { TutorReviewCard } from '../../components/tutor-review-card/tutor-review-card';
+import { accountView, matchesSearch, statusView } from '../../utils/status';
 
-type Tab = 'all' | 'queue';
+type Tab = 'queue' | 'all';
+type StatusFilter = 'all' | VerificationStatus;
+
+const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
 @Component({
   selector: 'app-admin-tutors',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, Avatar, StatusBadge, SubjectBadge],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, PageHeader, Avatar, StatusBadge, Dialog, Pager, TutorReviewCard],
   templateUrl: './admin-tutors.html',
   styleUrl: './admin-tutors.scss',
 })
 export class AdminTutors implements OnInit {
-  readonly activeTab = signal<Tab>('all');
+  readonly tab = signal<Tab>('queue');
   readonly loading = signal(true);
-  readonly tutors = signal<TutorListItem[]>([]);
+  readonly failed = signal(false);
   readonly queue = signal<TutorDetail[]>([]);
+  readonly tutors = signal<TutorListItem[]>([]);
+  readonly busyId = signal<string | null>(null);
+
+  readonly statusFilter = signal<StatusFilter>('all');
+  readonly search = signal('');
+  readonly page = signal(1);
+  readonly pageSize = 20;
+
+  readonly filtered = computed(() =>
+    this.tutors().filter(
+      (t) =>
+        (this.statusFilter() === 'all' || t.verificationStatus === this.statusFilter()) &&
+        matchesSearch(this.search(), t.fullName, t.email, t.subjects.join(' '))
+    )
+  );
+  readonly visible = computed(() => pageOf(this.filtered(), this.page(), this.pageSize));
+
+  readonly rejectTarget = signal<{ tutorId: string; fullName: string; approved: boolean } | null>(null);
+  readonly suspendTarget = signal<TutorListItem | null>(null);
+  readonly addOpen = signal(false);
   readonly subjects = signal<SubjectPricing[]>([]);
+  readonly addError = signal<string | null>(null);
+  readonly saving = signal(false);
 
-  readonly showCreateForm = signal(false);
-  readonly submitting = signal(false);
-  readonly rejectingTutorId = signal<string | null>(null);
-  readonly rejectReason = signal('');
-  readonly previewDocument = signal<{ fileName: string; fileUrl: string } | null>(null);
+  readonly rejectForm: FormGroup;
+  readonly addForm: FormGroup;
 
-  readonly createForm: FormGroup;
+  readonly status = statusView;
+  readonly account = accountView;
+  readonly filters: { value: StatusFilter; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'rejected', label: 'Rejected' },
+  ];
 
-  constructor(private readonly fb: FormBuilder, private readonly adminApi: AdminApiService) {
-    this.createForm = this.fb.group({
-      fullName: ['', [Validators.required, Validators.minLength(2)]],
+  constructor(
+    private readonly fb: FormBuilder,
+    private readonly adminApi: Admin,
+    private readonly notifications: NotificationService,
+    private readonly route: ActivatedRoute,
+    private readonly router: Router
+  ) {
+    this.rejectForm = this.fb.group({
+      reason: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(500)]],
+    });
+
+    this.addForm = this.fb.group({
+      fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
-      hourlyRate: [80, [Validators.required, Validators.min(1)]],
-      yearsExperience: [0, [Validators.required, Validators.min(0)]],
-      bio: [''],
-      subjectIds: this.fb.array([]),
+      password: ['', [Validators.required, Validators.pattern(PASSWORD_PATTERN)]],
+      hourlyRate: [null as number | null, [Validators.required, Validators.min(1), Validators.max(10000)]],
+      yearsExperience: [0, [Validators.min(0), Validators.max(80)]],
+      bio: ['', [Validators.maxLength(2000)]],
+      subjectIds: [[] as string[]],
     });
   }
 
   ngOnInit(): void {
-    this.loadAll();
-    this.adminApi.getSubjects().subscribe((subjects) => this.subjects.set(subjects));
+    this.tab.set(this.route.snapshot.queryParamMap.get('tab') === 'all' ? 'all' : 'queue');
+    this.load();
+  }
+
+  load(): void {
+    this.failed.set(false);
+    forkJoin({ queue: this.adminApi.getVerificationQueue(), tutors: this.adminApi.getTutors() }).subscribe({
+      next: ({ queue, tutors }) => {
+        this.queue.set(queue);
+        this.tutors.set(tutors);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.failed.set(true);
+      },
+    });
   }
 
   setTab(tab: Tab): void {
-    this.activeTab.set(tab);
+    this.tab.set(tab);
+    this.router.navigate([], { queryParams: { tab: tab === 'all' ? 'all' : null }, replaceUrl: true });
   }
 
-  loadAll(): void {
-    this.loading.set(true);
-    this.adminApi.getTutors().subscribe((tutors) => {
-      this.tutors.set(tutors);
-      this.loading.set(false);
-    });
-    this.adminApi.getVerificationQueue().subscribe((queue) => this.queue.set(queue));
+  setFilter(value: StatusFilter): void {
+    this.statusFilter.set(value);
+    this.page.set(1);
   }
 
-  statusVariant(status: string): BadgeVariant {
-    switch (status) {
-      case 'approved':
-        return 'success';
-      case 'rejected':
-        return 'danger';
-      default:
-        return 'warning';
-    }
+  onSearch(value: string): void {
+    this.search.set(value);
+    this.page.set(1);
   }
 
-  statusLabel(status: string): string {
-    return status.charAt(0).toUpperCase() + status.slice(1);
+  countFor(value: StatusFilter): number {
+    return value === 'all' ? this.tutors().length : this.tutors().filter((t) => t.verificationStatus === value).length;
   }
 
-  toggleSubject(subjectId: string, checked: boolean): void {
-    const current: string[] = (this.createForm.value.subjectIds as string[]) ?? [];
-    const next = checked ? [...current, subjectId] : current.filter((id) => id !== subjectId);
-    this.createForm.patchValue({ subjectIds: next });
-  }
-
-  isSubjectChecked(subjectId: string): boolean {
-    const current: string[] = (this.createForm.value.subjectIds as string[]) ?? [];
-    return current.includes(subjectId);
-  }
-
-  submitCreate(): void {
-    if (this.createForm.invalid) {
-      this.createForm.markAllAsTouched();
-      return;
-    }
-
-    this.submitting.set(true);
-    this.adminApi.createTutor(this.createForm.getRawValue()).subscribe({
+  approve(tutor: TutorDetail): void {
+    this.busyId.set(tutor.tutorId);
+    this.adminApi.approveTutor(tutor.tutorId).subscribe({
       next: () => {
-        this.submitting.set(false);
-        this.showCreateForm.set(false);
-        this.createForm.reset({ hourlyRate: 80, yearsExperience: 0, subjectIds: [] });
-        this.loadAll();
+        this.busyId.set(null);
+        this.notifications.showSuccess('Tutor approved', `${tutor.fullName} can now be booked by students.`);
+        this.load();
       },
-      error: () => this.submitting.set(false),
+      error: () => {
+        this.busyId.set(null);
+        this.notifications.showError('Approval failed', `${tutor.fullName} couldn't be approved. Try again.`);
+      },
     });
   }
 
-  approve(tutorId: string): void {
-    this.adminApi.approveTutor(tutorId).subscribe(() => this.loadAll());
-  }
-
-  startReject(tutorId: string): void {
-    this.rejectingTutorId.set(tutorId);
-    this.rejectReason.set('');
-  }
-
-  cancelReject(): void {
-    this.rejectingTutorId.set(null);
+  openReject(tutor: { tutorId: string; fullName: string; verificationStatus: VerificationStatus }): void {
+    this.rejectForm.reset({ reason: '' });
+    this.rejectTarget.set({ tutorId: tutor.tutorId, fullName: tutor.fullName, approved: tutor.verificationStatus === 'approved' });
   }
 
   confirmReject(): void {
-    const tutorId = this.rejectingTutorId();
-    if (!tutorId || !this.rejectReason().trim()) {
+    const target = this.rejectTarget();
+    if (!target) {
       return;
     }
-    this.adminApi.rejectTutor(tutorId, this.rejectReason().trim()).subscribe(() => {
-      this.rejectingTutorId.set(null);
-      this.loadAll();
+    if (this.rejectForm.invalid) {
+      this.rejectForm.markAllAsTouched();
+      return;
+    }
+
+    this.saving.set(true);
+    this.adminApi.rejectTutor(target.tutorId, this.rejectForm.getRawValue().reason.trim()).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.rejectTarget.set(null);
+        this.notifications.showSuccess(
+          target.approved ? 'Approval revoked' : 'Verification rejected',
+          `${target.fullName} will see your reason.`
+        );
+        this.load();
+      },
+      error: () => {
+        this.saving.set(false);
+        this.notifications.showError('Couldn’t save', 'The tutor’s status wasn’t changed. Try again.');
+      },
     });
   }
 
-  openPreview(fileName: string, fileUrl: string): void {
-    this.previewDocument.set({ fileName, fileUrl });
+  toggleActive(tutor: TutorListItem): void {
+    if (tutor.isActive) {
+      this.suspendTarget.set(tutor);
+      return;
+    }
+    this.setActive(tutor, true);
   }
 
-  closePreview(): void {
-    this.previewDocument.set(null);
+  setActive(tutor: TutorListItem, active: boolean): void {
+    this.saving.set(true);
+    const call = active ? this.adminApi.activateUser(tutor.tutorId) : this.adminApi.suspendUser(tutor.tutorId);
+    call.subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.suspendTarget.set(null);
+        this.notifications.showSuccess(
+          active ? 'Account reactivated' : 'Account suspended',
+          active ? `${tutor.fullName} can sign in again.` : `${tutor.fullName} can no longer sign in.`
+        );
+        this.load();
+      },
+      error: () => {
+        this.saving.set(false);
+        this.notifications.showError('Couldn’t update the account', 'Try again.');
+      },
+    });
+  }
+
+  openAdd(): void {
+    this.addForm.reset({ fullName: '', email: '', password: '', hourlyRate: null, yearsExperience: 0, bio: '', subjectIds: [] });
+    this.addError.set(null);
+    this.addOpen.set(true);
+    if (!this.subjects().length) {
+      this.adminApi.getSubjects().subscribe({ next: (s) => this.subjects.set(s) });
+    }
+  }
+
+  isSubjectSelected(id: string): boolean {
+    return (this.addForm.get('subjectIds')?.value as string[]).includes(id);
+  }
+
+  toggleSubject(id: string): void {
+    const current = this.addForm.get('subjectIds')?.value as string[];
+    this.addForm.patchValue({ subjectIds: current.includes(id) ? current.filter((s) => s !== id) : [...current, id] });
+  }
+
+  invalid(name: string): boolean {
+    const c = this.addForm.get(name);
+    return !!c && c.invalid && (c.dirty || c.touched);
+  }
+
+  get rejectInvalid(): boolean {
+    const c = this.rejectForm.get('reason');
+    return !!c && c.invalid && (c.dirty || c.touched);
+  }
+
+  submitAdd(): void {
+    this.addError.set(null);
+    if (this.addForm.invalid) {
+      this.addForm.markAllAsTouched();
+      return;
+    }
+
+    const v = this.addForm.getRawValue();
+    this.saving.set(true);
+    this.adminApi
+      .createTutor({
+        fullName: v.fullName.trim(),
+        email: v.email.trim(),
+        password: v.password,
+        hourlyRate: Number(v.hourlyRate),
+        yearsExperience: Number(v.yearsExperience) || 0,
+        bio: v.bio?.trim() || null,
+        subjectIds: v.subjectIds,
+      })
+      .subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.addOpen.set(false);
+          this.notifications.showSuccess('Tutor added', `${v.fullName.trim()} is approved and can sign in with the password you set.`);
+          this.setTab('all');
+          this.load();
+        },
+        error: (err: HttpErrorResponse) => {
+          this.saving.set(false);
+          this.addError.set(
+            err.status === 409
+              ? 'An account with this email already exists.'
+              : err.status === 400
+                ? 'Some details need fixing. Check the fields and try again.'
+                : 'The tutor couldn’t be added. Try again.'
+          );
+        },
+      });
   }
 }
