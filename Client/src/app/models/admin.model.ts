@@ -1,4 +1,5 @@
 import { BookingStatus, InvoiceStatus } from './parent.model';
+import { UserRole } from './user-role.model';
 
 export type VerificationStatus = 'pending' | 'approved' | 'rejected';
 export type DisputeStatus = 'open' | 'resolved' | 'rejected';
@@ -27,14 +28,6 @@ export interface AdminDashboard {
   recentBookings: RecentBooking[];
 }
 
-export interface VerificationDocument {
-  documentId: string;
-  documentType: DocumentType;
-  fileName: string;
-  fileUrl: string;
-  uploadedAt: string;
-}
-
 export interface TutorListItem {
   tutorId: string;
   fullName: string;
@@ -45,6 +38,14 @@ export interface TutorListItem {
   isActive: boolean;
   subjects: string[];
   completedBookings: number;
+}
+
+export interface VerificationDocument {
+  documentId: string;
+  documentType: DocumentType;
+  fileName: string;
+  fileUrl: string;
+  uploadedAt: string;
 }
 
 export interface TutorDetail {
@@ -66,17 +67,15 @@ export interface CreateTutorPayload {
   password: string;
   hourlyRate: number;
   yearsExperience: number;
-  bio?: string;
+  bio: string | null;
   subjectIds: string[];
 }
-
-export type ManagedUserRole = 'student' | 'parent';
 
 export interface UserAccount {
   userId: string;
   fullName: string;
   email: string;
-  role: ManagedUserRole;
+  role: UserRole;
   isActive: boolean;
   createdAt: string;
 }
@@ -87,6 +86,15 @@ export interface SubjectPricing {
   defaultHourlyRate: number;
   commissionPercent: number;
   tutorCount: number;
+}
+
+export interface SubjectPricingPayload {
+  defaultHourlyRate: number;
+  commissionPercent: number;
+}
+
+export interface CreateSubjectPayload extends SubjectPricingPayload {
+  name: string;
 }
 
 export interface AdminBooking {
@@ -129,3 +137,9 @@ export interface Analytics {
   bookingsByMonth: MonthlyPoint[];
   cancellationsByMonth: MonthlyPoint[];
 }
+
+export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+  idDocument: 'ID document',
+  qualification: 'Qualification',
+  backgroundCheck: 'Background check',
+};

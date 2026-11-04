@@ -1,81 +1,127 @@
-<h1 class="page-title">Bookings &amp; Payments</h1>
-<p class="page-subtitle mb-4">Monitor platform-wide activity</p>
+<app-page-header title="Bookings & Payments" subtitle="Every lesson booked and every invoice raised"></app-page-header>
 
-<div class="tab-switch mb-4">
-  <button type="button" class="tab-btn" [class.active]="activeTab() === 'bookings'" (click)="setTab('bookings')">
-    Bookings
-  </button>
-  <button type="button" class="tab-btn" [class.active]="activeTab() === 'payments'" (click)="setTab('payments')">
-    Payments
-  </button>
-</div>
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading bookings and payments…</div>
 
-<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
-
-<div class="panel" *ngIf="!loading() && activeTab() === 'bookings'">
-  <div class="table-responsive" *ngIf="bookings().length; else noBookings">
-    <table class="table align-middle admin-table">
-      <thead>
-        <tr>
-          <th>Subject</th>
-          <th>Student</th>
-          <th>Tutor</th>
-          <th>Scheduled</th>
-          <th>Price</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let booking of bookings()">
-          <td class="fw-semibold">{{ booking.subjectName }}</td>
-          <td>{{ booking.studentName }}</td>
-          <td>{{ booking.tutorName }}</td>
-          <td>{{ booking.scheduledAt | date: 'MMM d, y · h:mm a' }}</td>
-          <td>${{ booking.price }}</td>
-          <td>
-            <app-status-badge
-              [text]="label(booking.status)"
-              [variant]="bookingStatusVariant(booking.status)"
-            ></app-status-badge>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load bookings and payments. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
   </div>
-  <ng-template #noBookings>
-    <p class="text-muted mb-0">No bookings yet.</p>
-  </ng-template>
-</div>
 
-<div class="panel" *ngIf="!loading() && activeTab() === 'payments'">
-  <div class="table-responsive" *ngIf="payments().length; else noPayments">
-    <table class="table align-middle admin-table">
-      <thead>
-        <tr>
-          <th>Parent</th>
-          <th>Student</th>
-          <th>Period</th>
-          <th>Amount</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let invoice of payments()">
-          <td>{{ invoice.parentName }}</td>
-          <td>{{ invoice.studentName }}</td>
-          <td>{{ invoice.periodDescription }}</td>
-          <td class="fw-semibold">${{ invoice.amount }}</td>
-          <td>
-            <app-status-badge
-              [text]="label(invoice.status)"
-              [variant]="paymentStatusVariant(invoice.status)"
-            ></app-status-badge>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <ng-template #noPayments>
-    <p class="text-muted mb-0">No payments yet.</p>
-  </ng-template>
+  <ng-container *ngIf="!loading() && !failed()">
+    <div class="stats-row">
+      <app-stat-card label="Bookings" [value]="bookings().length.toString()" icon="bi-calendar-check" tone="slate" [hint]="bookingCount('upcoming') + ' upcoming'"></app-stat-card>
+      <app-stat-card label="Booked value" [value]="(bookedValue() | currency: 'ZAR' : 'R' : '1.0-0') ?? ''" icon="bi-graph-up" tone="teal" hint="Excludes cancelled"></app-stat-card>
+      <app-stat-card label="Collected" [value]="(collected() | currency: 'ZAR' : 'R' : '1.0-0') ?? ''" icon="bi-wallet2" tone="mint" [hint]="invoiceCount('paid') + ' paid invoices'"></app-stat-card>
+      <app-stat-card label="Outstanding" [value]="(outstanding() | currency: 'ZAR' : 'R' : '1.0-0') ?? ''" icon="bi-hourglass-split" tone="yellow" [hint]="invoiceCount('pending') + ' unpaid invoices'"></app-stat-card>
+    </div>
+
+    <div class="tab-bar" role="tablist" aria-label="Bookings or payments">
+      <button type="button" role="tab" id="tab-bookings" aria-controls="bp-panel" [attr.aria-selected]="tab() === 'bookings'" (click)="setTab('bookings')">Bookings</button>
+      <button type="button" role="tab" id="tab-payments" aria-controls="bp-panel" [attr.aria-selected]="tab() === 'payments'" (click)="setTab('payments')">
+        Payments <span class="count-badge" *ngIf="invoiceCount('pending')">{{ invoiceCount('pending') }}</span>
+      </button>
+    </div>
+
+    <div id="bp-panel" role="tabpanel" [attr.aria-labelledby]="'tab-' + tab()" class="d-flex flex-column gap-3">
+      <div class="toolbar">
+        <div class="chips" role="group" aria-label="Filter by status" *ngIf="tab() === 'bookings'">
+          <button type="button" class="chip" *ngFor="let f of bookingFilters" [attr.aria-pressed]="bookingFilter() === f.value" (click)="setBookingFilter(f.value)">
+            {{ f.label }} <span class="chip-count">{{ bookingCount(f.value) }}</span>
+          </button>
+        </div>
+        <div class="chips" role="group" aria-label="Filter by status" *ngIf="tab() === 'payments'">
+          <button type="button" class="chip" *ngFor="let f of invoiceFilters" [attr.aria-pressed]="invoiceFilter() === f.value" (click)="setInvoiceFilter(f.value)">
+            {{ f.label }} <span class="chip-count">{{ invoiceCount(f.value) }}</span>
+          </button>
+        </div>
+        <div class="search-box">
+          <i class="bi bi-search" aria-hidden="true"></i>
+          <label class="sr-only" for="bp-search">Search</label>
+          <input id="bp-search" type="search" class="form-control" [placeholder]="tab() === 'bookings' ? 'Search student, tutor or subject' : 'Search parent, student or period'" [value]="search()" (input)="onSearch($any($event.target).value)" />
+        </div>
+      </div>
+
+      <ng-container *ngIf="tab() === 'bookings'">
+        <div class="data-table-wrap" *ngIf="filteredBookings().length; else noBookings">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th scope="col">Student</th>
+                <th scope="col">Tutor</th>
+                <th scope="col">Date &amp; time</th>
+                <th scope="col" class="num">Amount</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let b of visibleBookings()">
+                <td>
+                  <div class="cell-who">
+                    <app-avatar [name]="b.studentName" size="sm"></app-avatar>
+                    <div><strong>{{ b.studentName }}</strong><span>{{ b.subjectName }}</span></div>
+                  </div>
+                </td>
+                <td>{{ b.tutorName }}</td>
+                <td class="text-nowrap">{{ b.scheduledAt | date: 'EEE d MMM y, HH:mm' }}</td>
+                <td class="num">{{ b.price | currency: 'ZAR' : 'R' : '1.2-2' }}</td>
+                <td><app-status-badge [text]="status(b.status).text" [variant]="status(b.status).variant"></app-status-badge></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <app-pager [total]="filteredBookings().length" [page]="page()" [pageSize]="pageSize" noun="bookings" (pageChange)="page.set($event)"></app-pager>
+        <ng-template #noBookings>
+          <div class="empty-block">
+            <h3>{{ bookings().length ? 'No bookings match' : 'No bookings yet' }}</h3>
+            <p>{{ bookings().length ? 'Try a different filter or search.' : 'Bookings show here once students start booking lessons.' }}</p>
+          </div>
+        </ng-template>
+      </ng-container>
+
+      <ng-container *ngIf="tab() === 'payments'">
+        <div class="data-table-wrap" *ngIf="filteredInvoices().length; else noInvoices">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th scope="col">Billed to</th>
+                <th scope="col">Student</th>
+                <th scope="col">Period</th>
+                <th scope="col" class="num">Amount</th>
+                <th scope="col">Status</th>
+                <th scope="col"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let i of visibleInvoices()">
+                <td>
+                  <div class="cell-who">
+                    <app-avatar [name]="i.parentName" size="sm"></app-avatar>
+                    <div><strong>{{ i.parentName }}</strong></div>
+                  </div>
+                </td>
+                <td>{{ i.studentName }}</td>
+                <td>{{ i.periodDescription }}</td>
+                <td class="num">{{ i.amount | currency: 'ZAR' : 'R' : '1.2-2' }}</td>
+                <td><app-status-badge [text]="i.status === 'pending' ? 'Outstanding' : status(i.status).text" [variant]="status(i.status).variant"></app-status-badge></td>
+                <td class="text-end">
+                  <button type="button" class="btn btn-outline-ink btn-sm text-nowrap" [disabled]="emailingId() === i.invoiceId" (click)="emailInvoice(i)">
+                    <span class="spinner-inline" *ngIf="emailingId() === i.invoiceId" aria-hidden="true"></span>
+                    <i class="bi bi-envelope" *ngIf="emailingId() !== i.invoiceId" aria-hidden="true"></i>Email<span class="sr-only"> invoice to {{ i.parentName }}</span>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <app-pager [total]="filteredInvoices().length" [page]="page()" [pageSize]="pageSize" noun="invoices" (pageChange)="page.set($event)"></app-pager>
+        <ng-template #noInvoices>
+          <div class="empty-block">
+            <h3>{{ invoices().length ? 'No invoices match' : 'No invoices yet' }}</h3>
+            <p>{{ invoices().length ? 'Try a different filter or search.' : 'Invoices show here once parents are billed for lessons.' }}</p>
+          </div>
+        </ng-template>
+      </ng-container>
+    </div>
+  </ng-container>
 </div>

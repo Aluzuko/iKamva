@@ -1,89 +1,129 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
-import { Dispute } from '../../models/admin.model';
-import { AdminApiService } from '../../services/admin-api.service';
-import { Avatar } from '../../components/avatar/avatar';
-import { BadgeVariant, StatusBadge } from '../../components/status-badge/status-badge';
+import { Component, OnInit, computed, signal } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Dispute, DisputeStatus } from '../../models/admin.model';
+import { Admin } from '../../services/admin';
+import { NotificationService } from '../../services/notification.service';
+import { PageHeader } from '../../components/page-header/page-header';
+import { StatusBadge } from '../../components/status-badge/status-badge';
+import { Dialog } from '../../components/dialog/dialog';
+import { matchesSearch, statusView } from '../../utils/status';
 
-type Tab = 'open' | 'resolved';
+type Filter = 'all' | DisputeStatus;
+type Action = 'resolve' | 'reject';
 
 @Component({
   selector: 'app-admin-disputes',
   standalone: true,
-  imports: [CommonModule, Avatar, StatusBadge],
+  imports: [CommonModule, ReactiveFormsModule, PageHeader, StatusBadge, Dialog],
   templateUrl: './admin-disputes.html',
   styleUrl: './admin-disputes.scss',
 })
 export class AdminDisputes implements OnInit {
-  readonly disputes = signal<Dispute[]>([]);
   readonly loading = signal(true);
-  readonly activeTab = signal<Tab>('open');
-  readonly respondingId = signal<string | null>(null);
-  readonly resolutionText = signal('');
+  readonly failed = signal(false);
+  readonly disputes = signal<Dispute[]>([]);
+  readonly filter = signal<Filter>('open');
+  readonly search = signal('');
+  readonly target = signal<{ dispute: Dispute; action: Action } | null>(null);
+  readonly saving = signal(false);
 
-  constructor(private readonly adminApi: AdminApiService) {}
+  readonly filtered = computed(() =>
+    [...this.disputes()]
+      .filter(
+        (d) =>
+          (this.filter() === 'all' || d.status === this.filter()) &&
+          matchesSearch(this.search(), d.raisedByName, d.subject, d.description)
+      )
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  );
+
+  readonly filters: { value: Filter; label: string }[] = [
+    { value: 'open', label: 'Open' },
+    { value: 'resolved', label: 'Resolved' },
+    { value: 'rejected', label: 'Rejected' },
+    { value: 'all', label: 'All' },
+  ];
+  readonly status = statusView;
+  readonly form: FormGroup;
+
+  constructor(
+    private readonly fb: FormBuilder,
+    private readonly adminApi: Admin,
+    private readonly notifications: NotificationService
+  ) {
+    this.form = this.fb.group({
+      resolution: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(1000)]],
+    });
+  }
 
   ngOnInit(): void {
     this.load();
   }
 
   load(): void {
-    this.loading.set(true);
-    this.adminApi.getDisputes().subscribe((disputes) => {
-      this.disputes.set(disputes);
-      this.loading.set(false);
+    this.failed.set(false);
+    this.adminApi.getDisputes().subscribe({
+      next: (d) => {
+        this.disputes.set(d);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.failed.set(true);
+      },
     });
   }
 
-  setTab(tab: Tab): void {
-    this.activeTab.set(tab);
+  countFor(value: Filter): number {
+    return value === 'all' ? this.disputes().length : this.disputes().filter((d) => d.status === value).length;
   }
 
-  get filtered(): Dispute[] {
-    return this.disputes().filter((d) => (this.activeTab() === 'open' ? d.status === 'open' : d.status !== 'open'));
+  open(dispute: Dispute, action: Action): void {
+    this.form.reset({ resolution: '' });
+    this.target.set({ dispute, action });
   }
 
-  startRespond(disputeId: string): void {
-    this.respondingId.set(disputeId);
-    this.resolutionText.set('');
+  get resolutionInvalid(): boolean {
+    const c = this.form.get('resolution');
+    return !!c && c.invalid && (c.dirty || c.touched);
   }
 
-  cancelRespond(): void {
-    this.respondingId.set(null);
-  }
-
-  resolve(disputeId: string): void {
-    if (!this.resolutionText().trim()) {
+  submit(): void {
+    const t = this.target();
+    if (!t) {
       return;
     }
-    this.adminApi.resolveDispute(disputeId, this.resolutionText().trim()).subscribe(() => {
-      this.respondingId.set(null);
-      this.load();
-    });
-  }
-
-  reject(disputeId: string): void {
-    if (!this.resolutionText().trim()) {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
       return;
     }
-    this.adminApi.rejectDispute(disputeId, this.resolutionText().trim()).subscribe(() => {
-      this.respondingId.set(null);
-      this.load();
+    const resolution = (this.form.getRawValue().resolution as string).trim();
+    const call =
+      t.action === 'resolve'
+        ? this.adminApi.resolveDispute(t.dispute.disputeId, resolution)
+        : this.adminApi.rejectDispute(t.dispute.disputeId, resolution);
+
+    this.saving.set(true);
+    call.subscribe({
+      next: () => {
+        const status: DisputeStatus = t.action === 'resolve' ? 'resolved' : 'rejected';
+        this.disputes.update((list) =>
+          list.map((d) =>
+            d.disputeId === t.dispute.disputeId ? { ...d, status, resolution, resolvedAt: new Date().toISOString() } : d
+          )
+        );
+        this.saving.set(false);
+        this.target.set(null);
+        this.notifications.showSuccess(
+          t.action === 'resolve' ? 'Dispute resolved' : 'Dispute rejected',
+          `${t.dispute.raisedByName} will see your outcome.`
+        );
+      },
+      error: () => {
+        this.saving.set(false);
+        this.notifications.showError('Couldn’t save', 'The dispute wasn’t changed. Try again.');
+      },
     });
-  }
-
-  statusVariant(status: string): BadgeVariant {
-    switch (status) {
-      case 'resolved':
-        return 'success';
-      case 'rejected':
-        return 'danger';
-      default:
-        return 'warning';
-    }
-  }
-
-  statusLabel(status: string): string {
-    return status.charAt(0).toUpperCase() + status.slice(1);
   }
 }

@@ -1,26 +1,67 @@
-<h1 class="page-title">Analytics &amp; Reports</h1>
-<p class="page-subtitle mb-4">Platform performance over the last 6 months</p>
+<app-page-header title="Analytics & Reports" [subtitle]="rows().length ? 'The last ' + rows().length + ' months' : 'Monthly platform trends'">
+  <button type="button" class="btn btn-outline-ink" (click)="exportCsv()" [disabled]="!rows().length">
+    <i class="bi bi-download" aria-hidden="true"></i><span>Export<span class="long"> CSV</span></span>
+  </button>
+</app-page-header>
 
-<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading analytics…</div>
 
-<div *ngIf="!loading() && analytics() as data">
-  <div class="panel mb-4">
-    <h2 class="section-title">Revenue</h2>
-    <app-bar-chart [points]="data.revenueByMonth" color="#16a34a" valuePrefix="$"></app-bar-chart>
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load analytics. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
   </div>
 
-  <div class="row g-3">
-    <div class="col-12 col-lg-6">
-      <div class="panel">
-        <h2 class="section-title">Bookings</h2>
-        <app-bar-chart [points]="data.bookingsByMonth" color="#2563eb"></app-bar-chart>
-      </div>
+  <ng-container *ngIf="!loading() && !failed()">
+    <div class="empty-block" *ngIf="!hasActivity()">
+      <h3>No activity yet</h3>
+      <p>Charts fill in once lessons are booked and paid for.</p>
     </div>
-    <div class="col-12 col-lg-6">
-      <div class="panel">
-        <h2 class="section-title">Cancellations</h2>
-        <app-bar-chart [points]="data.cancellationsByMonth" color="#dc2626"></app-bar-chart>
+
+    <ng-container *ngIf="hasActivity()">
+      <div class="stats-row">
+        <app-stat-card label="Revenue" [value]="(totals().revenue | currency: 'ZAR' : 'R' : '1.0-0') ?? ''" icon="bi-wallet2" tone="mint" [hint]="'Last ' + rows().length + ' months'"></app-stat-card>
+        <app-stat-card label="Bookings" [value]="totals().bookings.toString()" icon="bi-calendar-check" tone="slate" [hint]="'Last ' + rows().length + ' months'"></app-stat-card>
+        <app-stat-card label="Average lesson" [value]="(totals().average | currency: 'ZAR' : 'R' : '1.2-2') ?? ''" icon="bi-receipt" tone="teal" hint="Revenue per booking"></app-stat-card>
+        <app-stat-card label="Cancellation rate" [value]="totals().cancelRate + '%'" icon="bi-x-circle" tone="yellow" [hint]="totals().cancellations + ' cancelled'"></app-stat-card>
       </div>
-    </div>
-  </div>
+
+      <div class="grid-2">
+        <section class="panel">
+          <h2 class="section-title">Revenue by month</h2>
+          <app-bar-chart [points]="data()!.revenueByMonth" label="Revenue by month" format="currency"></app-bar-chart>
+        </section>
+        <section class="panel">
+          <h2 class="section-title">Bookings by month</h2>
+          <app-bar-chart [points]="data()!.bookingsByMonth" label="Bookings by month"></app-bar-chart>
+        </section>
+      </div>
+
+      <section>
+        <h2 class="section-title">Monthly breakdown</h2>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th scope="col">Month</th>
+                <th scope="col" class="num">Revenue</th>
+                <th scope="col" class="num">Bookings</th>
+                <th scope="col" class="num">Cancellations</th>
+                <th scope="col" class="num">Cancellation rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of rows()">
+                <td><strong>{{ r.label }}</strong></td>
+                <td class="num">{{ r.revenue | currency: 'ZAR' : 'R' : '1.0-0' }}</td>
+                <td class="num">{{ r.bookings }}</td>
+                <td class="num">{{ r.cancellations }}</td>
+                <td class="num">{{ r.cancelRate }}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </ng-container>
+  </ng-container>
 </div>

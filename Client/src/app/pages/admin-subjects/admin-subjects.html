@@ -1,89 +1,109 @@
-<div class="d-flex justify-content-between align-items-start mb-4">
-  <div>
-    <h1 class="page-title">Subjects &amp; Pricing</h1>
-    <p class="page-subtitle">Manage default hourly rates and platform commission</p>
-  </div>
-  <button type="button" class="btn btn-primary-role" (click)="showCreateForm.set(!showCreateForm())">
-    <i class="bi bi-plus-lg me-1"></i>Add Subject
+<app-page-header title="Subjects & Pricing" subtitle="Default rates and the platform commission for each subject">
+  <button type="button" class="btn btn-primary-role" (click)="openAdd()">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i><span>Add<span class="long"> subject</span></span>
   </button>
-</div>
+</app-page-header>
 
-<div class="panel mb-4" *ngIf="showCreateForm()">
-  <h2 class="section-title">New Subject</h2>
-  <form [formGroup]="createForm" (ngSubmit)="submitCreate()" novalidate>
-    <div class="row g-3">
-      <div class="col-12 col-md-4">
-        <label class="auth-form-label">Subject name</label>
-        <input type="text" class="form-control" formControlName="name" placeholder="Chemistry" />
-      </div>
-      <div class="col-6 col-md-4">
-        <label class="auth-form-label">Default hourly rate ($)</label>
-        <input type="number" class="form-control" formControlName="defaultHourlyRate" />
-      </div>
-      <div class="col-6 col-md-4">
-        <label class="auth-form-label">Commission (%)</label>
-        <input type="number" class="form-control" formControlName="commissionPercent" />
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading subjects…</div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load subjects. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <ng-container *ngIf="!loading() && !failed()">
+    <div class="notice notice-info">
+      <i class="bi bi-info-circle" aria-hidden="true"></i>
+      <span>Price changes apply to new bookings only. Lessons already booked keep the price they were booked at.</span>
+    </div>
+
+    <div class="toolbar">
+      <span class="text-muted">{{ subjects().length }} {{ subjects().length === 1 ? 'subject' : 'subjects' }}</span>
+      <div class="search-box">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <label class="sr-only" for="subject-search">Search subjects</label>
+        <input id="subject-search" type="search" class="form-control" placeholder="Search subjects" (input)="search.set($any($event.target).value)" />
       </div>
     </div>
-    <div class="d-flex gap-2 mt-3">
-      <button type="submit" class="btn btn-primary-role" [disabled]="submitting()">Create</button>
-      <button type="button" class="btn btn-outline-secondary" (click)="showCreateForm.set(false)">Cancel</button>
-    </div>
-  </form>
-</div>
 
-<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
-
-<div class="panel" *ngIf="!loading()">
-  <div class="table-responsive" *ngIf="subjects().length; else noSubjects">
-    <table class="table align-middle admin-table">
-      <thead>
-        <tr>
-          <th>Subject</th>
-          <th>Tutors</th>
-          <th>Default Rate</th>
-          <th>Commission</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let subject of subjects()">
-          <td class="fw-semibold">{{ subject.name }}</td>
-          <td>{{ subject.tutorCount }}</td>
-
-          <ng-container *ngIf="editingId() !== subject.subjectId; else editRow">
-            <td>${{ subject.defaultHourlyRate }}/hr</td>
-            <td>{{ subject.commissionPercent }}%</td>
+    <div class="data-table-wrap" *ngIf="filtered().length; else none">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Subject</th>
+            <th scope="col" class="num">Default rate</th>
+            <th scope="col" class="num">Commission</th>
+            <th scope="col" class="num">Tutor receives</th>
+            <th scope="col" class="num">Tutors</th>
+            <th scope="col"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of filtered()">
+            <td><strong>{{ s.name }}</strong></td>
+            <td class="num">{{ s.defaultHourlyRate | currency: 'ZAR' : 'R' : '1.0-2' }}/hr</td>
+            <td class="num">{{ s.commissionPercent | number: '1.0-2' }}%</td>
+            <td class="num">{{ tutorReceives(s.defaultHourlyRate, s.commissionPercent) | currency: 'ZAR' : 'R' : '1.2-2' }}/hr</td>
+            <td class="num">{{ s.tutorCount }}</td>
             <td class="text-end">
-              <button type="button" class="btn btn-outline-secondary btn-sm" (click)="startEdit(subject)">
-                Edit
+              <button type="button" class="btn btn-outline-ink btn-sm" (click)="openEdit(s)">
+                Edit<span class="sr-only"> {{ s.name }} pricing</span>
               </button>
             </td>
-          </ng-container>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-          <ng-template #editRow>
-            <td>
-              <input type="number" class="form-control form-control-sm" [(ngModel)]="editRate" [ngModelOptions]="{ standalone: true }" />
-            </td>
-            <td>
-              <input type="number" class="form-control form-control-sm" [(ngModel)]="editCommission" [ngModelOptions]="{ standalone: true }" />
-            </td>
-            <td class="text-end">
-              <div class="d-flex gap-2 justify-content-end">
-                <button type="button" class="btn btn-primary-role btn-sm" (click)="saveEdit(subject.subjectId)">
-                  Save
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cancelEdit()">
-                  Cancel
-                </button>
-              </div>
-            </td>
-          </ng-template>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <ng-template #noSubjects>
-    <p class="text-muted mb-0">No subjects yet.</p>
-  </ng-template>
+    <ng-template #none>
+      <div class="empty-block">
+        <h3>{{ subjects().length ? 'No subjects match' : 'No subjects yet' }}</h3>
+        <p>{{ subjects().length ? 'Try a different search.' : 'Add the subjects tutors can teach and set their default pricing.' }}</p>
+      </div>
+    </ng-template>
+  </ng-container>
 </div>
+
+<app-dialog
+  *ngIf="editing() || adding()"
+  [title]="editing() ? 'Edit ' + editing()!.name + ' pricing' : 'Add a subject'"
+  [description]="editing() ? 'Changes apply to new bookings only.' : 'Tutors can choose this subject once it’s added.'"
+  (closed)="close()"
+>
+  <form id="subject-form" class="d-flex flex-column gap-3" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="notice notice-error" role="alert" *ngIf="formError()">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>{{ formError() }}</span>
+    </div>
+
+    <div *ngIf="adding()">
+      <label for="s-name" class="form-label">Subject name</label>
+      <input id="s-name" class="form-control" formControlName="name" [class.is-invalid]="invalid('name')" autocomplete="off" />
+      <div class="invalid-feedback" *ngIf="invalid('name')">Enter a name of at least 2 characters.</div>
+    </div>
+
+    <div class="field-row">
+      <div>
+        <label for="s-rate" class="form-label">Default hourly rate (R)</label>
+        <input id="s-rate" type="number" min="0" step="0.01" class="form-control" formControlName="defaultHourlyRate" [class.is-invalid]="invalid('defaultHourlyRate')" />
+        <div class="invalid-feedback" *ngIf="invalid('defaultHourlyRate')">Enter a rate between R0 and R10,000.</div>
+      </div>
+      <div>
+        <label for="s-commission" class="form-label">Commission (%)</label>
+        <input id="s-commission" type="number" min="0" max="100" step="0.5" class="form-control" formControlName="commissionPercent" [class.is-invalid]="invalid('commissionPercent')" />
+        <div class="invalid-feedback" *ngIf="invalid('commissionPercent')">Enter a percentage between 0 and 100.</div>
+      </div>
+    </div>
+
+    <p class="form-text m-0" aria-live="polite" *ngIf="preview !== null">
+      At this rate the tutor receives <strong>{{ preview | currency: 'ZAR' : 'R' : '1.2-2' }}</strong> per hour.
+    </p>
+  </form>
+  <ng-container dialog-actions>
+    <button type="button" class="btn btn-outline-ink" (click)="close()">Cancel</button>
+    <button type="submit" form="subject-form" class="btn btn-primary-role" [disabled]="saving()">
+      <span class="spinner-inline" *ngIf="saving()" aria-hidden="true"></span>
+      {{ saving() ? 'Saving' : editing() ? 'Save pricing' : 'Add subject' }}
+    </button>
+  </ng-container>
+</app-dialog>

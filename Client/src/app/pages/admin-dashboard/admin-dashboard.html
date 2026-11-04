@@ -1,93 +1,97 @@
-<div *ngIf="loading()" class="text-center text-muted py-5">Loading dashboard…</div>
+<app-page-header title="Overview" [subtitle]="'Platform activity for ' + (today | date: 'MMMM y')"></app-page-header>
 
-<div *ngIf="!loading() && dashboard() as data">
-  <h1 class="page-title">Admin Overview</h1>
-  <p class="page-subtitle mb-4">Platform-wide activity at a glance</p>
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading platform activity…</div>
 
-  <div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3">
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load the overview. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <div class="empty-block" *ngIf="!loading() && !failed() && !dashboard()">
+    <h3>No dashboard data yet</h3>
+    <p>The overview endpoint didn't return any figures. Once the API sends them, they'll show here.</p>
+  </div>
+
+  <ng-container *ngIf="!loading() && dashboard() as data">
+    <div class="stats-row">
       <app-stat-card
-        label="Total Revenue"
-        [value]="'$' + data.totalRevenue"
-        icon="bi-cash-stack"
+        label="Total revenue"
+        [value]="(data.totalRevenue | currency: 'ZAR' : 'R' : '1.0-0') ?? ''"
+        icon="bi-wallet2"
+        tone="mint"
         [trend]="{ percent: data.revenueChangePercent, label: 'vs last month' }"
       ></app-stat-card>
-    </div>
-    <div class="col-6 col-lg-3">
       <app-stat-card
-        label="Total Bookings"
+        label="Total bookings"
         [value]="data.totalBookings.toString()"
         icon="bi-calendar-check"
+        tone="slate"
         [trend]="{ percent: data.bookingsChangePercent, label: 'vs last month' }"
       ></app-stat-card>
+      <app-stat-card label="Tutors" [value]="data.activeTutors.toString()" icon="bi-mortarboard" tone="teal" hint="Registered"></app-stat-card>
+      <app-stat-card label="Students" [value]="data.activeStudents.toString()" icon="bi-people" tone="yellow" hint="Registered"></app-stat-card>
     </div>
-    <div class="col-6 col-lg-3">
-      <app-stat-card label="Active Tutors" [value]="data.activeTutors.toString()" icon="bi-mortarboard"></app-stat-card>
-    </div>
-    <div class="col-6 col-lg-3">
-      <app-stat-card label="Active Students" [value]="data.activeStudents.toString()" icon="bi-people"></app-stat-card>
-    </div>
-  </div>
 
-  <div class="row g-3 mb-4">
-    <div class="col-12 col-md-4">
-      <div class="panel text-center">
-        <div class="breakdown-value text-info">{{ data.upcomingBookings }}</div>
-        <div class="breakdown-label">Upcoming</div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="panel text-center">
-        <div class="breakdown-value text-success">{{ data.completedBookings }}</div>
-        <div class="breakdown-label">Completed</div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="panel text-center">
-        <div class="breakdown-value text-danger">{{ data.cancelledBookings }}</div>
-        <div class="breakdown-label">Cancelled</div>
-      </div>
-    </div>
-  </div>
+    <div class="grid-2-1">
+      <section class="panel">
+        <h2 class="section-title">Bookings by status</h2>
+        <div class="status-bar" role="img"
+          [attr.aria-label]="data.upcomingBookings + ' upcoming, ' + data.completedBookings + ' completed, ' + data.cancelledBookings + ' cancelled'">
+          <span class="seg seg-upcoming" [style.flex-grow]="data.upcomingBookings"></span>
+          <span class="seg seg-completed" [style.flex-grow]="data.completedBookings"></span>
+          <span class="seg seg-cancelled" [style.flex-grow]="data.cancelledBookings"></span>
+        </div>
+        <dl class="status-legend">
+          <div><dt><span class="dot seg-upcoming"></span>Upcoming</dt><dd>{{ data.upcomingBookings }} · {{ share(data.upcomingBookings, data) }}%</dd></div>
+          <div><dt><span class="dot seg-completed"></span>Completed</dt><dd>{{ data.completedBookings }} · {{ share(data.completedBookings, data) }}%</dd></div>
+          <div><dt><span class="dot seg-cancelled"></span>Cancelled</dt><dd>{{ data.cancelledBookings }} · {{ share(data.cancelledBookings, data) }}%</dd></div>
+        </dl>
+      </section>
 
-  <div class="panel">
-    <h2 class="section-title">Recent Bookings</h2>
-    <div class="table-responsive" *ngIf="data.recentBookings.length; else noBookings">
-      <table class="table align-middle admin-table">
-        <thead>
-          <tr>
-            <th>Subject</th>
-            <th>Student</th>
-            <th>Tutor</th>
-            <th>Scheduled</th>
-            <th>Price</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let booking of data.recentBookings">
-            <td class="fw-semibold">{{ booking.subjectName }}</td>
-            <td>
-              <div class="d-flex align-items-center gap-2">
-                <app-avatar [name]="booking.studentName" size="sm"></app-avatar>
-                {{ booking.studentName }}
-              </div>
-            </td>
-            <td>{{ booking.tutorName }}</td>
-            <td>{{ booking.scheduledAt | date: 'MMM d, y · h:mm a' }}</td>
-            <td>${{ booking.price }}</td>
-            <td>
-              <app-status-badge
-                [text]="statusLabel(booking.status)"
-                [variant]="statusVariant(booking.status)"
-              ></app-status-badge>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <section class="panel quick-actions">
+        <h2>Quick actions</h2>
+        <a class="q1" routerLink="/admin/tutors"><i class="bi bi-mortarboard" aria-hidden="true"></i>Review tutors</a>
+        <a class="q2" routerLink="/admin/users"><i class="bi bi-people" aria-hidden="true"></i>Students &amp; parents</a>
+        <a class="q4" routerLink="/admin/disputes"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i>Open disputes</a>
+      </section>
     </div>
-    <ng-template #noBookings>
-      <p class="text-muted mb-0">No bookings yet.</p>
-    </ng-template>
-  </div>
+
+    <section>
+      <h2 class="section-title">Recent bookings</h2>
+      <div class="data-table-wrap" *ngIf="data.recentBookings.length; else noBookings">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Lesson</th>
+              <th scope="col">Tutor</th>
+              <th scope="col">Date &amp; time</th>
+              <th scope="col">Amount</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let b of data.recentBookings">
+              <td>
+                <div class="cell-who">
+                  <app-avatar [name]="b.studentName" size="sm"></app-avatar>
+                  <div><strong>{{ b.studentName }}</strong><span>{{ b.subjectName }}</span></div>
+                </div>
+              </td>
+              <td>{{ b.tutorName }}</td>
+              <td>{{ b.scheduledAt | date: 'MMM d, y · h:mm a' }}</td>
+              <td class="fw-bold">{{ b.status === 'cancelled' ? '—' : (b.price | currency: 'ZAR' : 'R' : '1.0-2') }}</td>
+              <td><app-status-badge [text]="statusLabel(b)" [variant]="statusVariant(b)"></app-status-badge></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noBookings>
+        <div class="empty-block">
+          <h3>No bookings yet</h3>
+          <p>Lessons booked on the platform will show here.</p>
+        </div>
+      </ng-template>
+    </section>
+  </ng-container>
 </div>

@@ -1,65 +1,94 @@
-<h1 class="page-title">Students &amp; Parents</h1>
-<p class="page-subtitle mb-4">Manage platform accounts</p>
+<app-page-header title="Students & Parents" subtitle="Everyone who learns on, or pays for, iKamva"></app-page-header>
 
-<div class="tab-switch mb-4">
-  <button type="button" class="tab-btn" [class.active]="filter() === 'all'" (click)="setFilter('all')">All</button>
-  <button type="button" class="tab-btn" [class.active]="filter() === 'student'" (click)="setFilter('student')">
-    Students
-  </button>
-  <button type="button" class="tab-btn" [class.active]="filter() === 'parent'" (click)="setFilter('parent')">
-    Parents
-  </button>
-</div>
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading accounts…</div>
 
-<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
-
-<div class="panel" *ngIf="!loading()">
-  <div class="table-responsive" *ngIf="users().length; else noUsers">
-    <table class="table align-middle admin-table">
-      <thead>
-        <tr>
-          <th>User</th>
-          <th>Role</th>
-          <th>Joined</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let user of users()">
-          <td>
-            <div class="d-flex align-items-center gap-2">
-              <app-avatar [name]="user.fullName" size="sm"></app-avatar>
-              <div>
-                <div class="fw-semibold">{{ user.fullName }}</div>
-                <div class="text-muted small">{{ user.email }}</div>
-              </div>
-            </div>
-          </td>
-          <td class="text-capitalize">{{ user.role }}</td>
-          <td>{{ user.createdAt | date: 'MMM d, y' }}</td>
-          <td>
-            <app-status-badge
-              [text]="user.isActive ? 'Active' : 'Suspended'"
-              [variant]="user.isActive ? 'success' : 'danger'"
-            ></app-status-badge>
-          </td>
-          <td class="text-end">
-            <button
-              type="button"
-              class="btn btn-sm"
-              [class.btn-outline-danger]="user.isActive"
-              [class.btn-outline-success]="!user.isActive"
-              (click)="toggleActive(user)"
-            >
-              {{ user.isActive ? 'Suspend' : 'Activate' }}
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load accounts. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
   </div>
-  <ng-template #noUsers>
-    <p class="text-muted mb-0">No accounts found.</p>
-  </ng-template>
+
+  <ng-container *ngIf="!loading() && !failed()">
+    <div class="stats-row">
+      <app-stat-card label="Students" [value]="studentCount().toString()" icon="bi-backpack" tone="yellow"></app-stat-card>
+      <app-stat-card label="Parents" [value]="parentCount().toString()" icon="bi-people" tone="teal"></app-stat-card>
+      <app-stat-card label="Suspended" [value]="suspendedCount().toString()" icon="bi-slash-circle" tone="slate" hint="Can’t sign in"></app-stat-card>
+    </div>
+
+    <div class="toolbar">
+      <div class="chips" role="group" aria-label="Filter by role">
+        <button type="button" class="chip" *ngFor="let f of roleFilters" [attr.aria-pressed]="roleFilter() === f.value" (click)="setRole(f.value)">
+          {{ f.label }} <span class="chip-count">{{ roleCount(f.value) }}</span>
+        </button>
+      </div>
+      <div class="search-box">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <label class="sr-only" for="user-search">Search accounts</label>
+        <input id="user-search" type="search" class="form-control" placeholder="Search name or email" (input)="onSearch($any($event.target).value)" />
+      </div>
+    </div>
+
+    <div class="chips" role="group" aria-label="Filter by account status">
+      <button type="button" class="chip" *ngFor="let f of accountFilters" [attr.aria-pressed]="accountFilter() === f.value" (click)="setAccount(f.value)">
+        {{ f.label }}
+      </button>
+    </div>
+
+    <div class="data-table-wrap" *ngIf="filtered().length; else none">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Role</th>
+            <th scope="col">Joined</th>
+            <th scope="col">Account</th>
+            <th scope="col"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of visible()">
+            <td>
+              <div class="cell-who">
+                <app-avatar [name]="u.fullName" size="sm"></app-avatar>
+                <div><strong>{{ u.fullName }}</strong><span>{{ u.email }}</span></div>
+              </div>
+            </td>
+            <td>{{ roleName(u.role) }}</td>
+            <td class="text-nowrap">{{ u.createdAt | date: 'MMM d, y' }}</td>
+            <td><app-status-badge [text]="account(u.isActive).text" [variant]="account(u.isActive).variant"></app-status-badge></td>
+            <td class="text-end">
+              <button type="button" class="btn btn-sm" [ngClass]="u.isActive ? 'btn-danger-outline' : 'btn-soft'" [disabled]="saving()" (click)="toggle(u)">
+                {{ u.isActive ? 'Suspend' : 'Reactivate' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pager [total]="filtered().length" [page]="page()" [pageSize]="pageSize" noun="accounts" (pageChange)="page.set($event)"></app-pager>
+
+    <ng-template #none>
+      <div class="empty-block">
+        <h3>{{ people().length ? 'No accounts match' : 'No students or parents yet' }}</h3>
+        <p>{{ people().length ? 'Try a different filter or search.' : 'Accounts appear here as soon as people sign up.' }}</p>
+      </div>
+    </ng-template>
+  </ng-container>
 </div>
+
+<app-dialog
+  *ngIf="suspendTarget() as target"
+  [title]="'Suspend ' + target.fullName + '?'"
+  [description]="target.role === 'parent'
+    ? 'They won’t be able to sign in or pay invoices, and they’re signed out everywhere. Their children’s accounts aren’t affected.'
+    : 'They won’t be able to sign in or book lessons, and they’re signed out everywhere. Their history is kept.'"
+  (closed)="suspendTarget.set(null)"
+>
+  <ng-container dialog-actions>
+    <button type="button" class="btn btn-outline-ink" (click)="suspendTarget.set(null)">Cancel</button>
+    <button type="button" class="btn btn-danger-solid" [disabled]="saving()" (click)="setActive(target, false)">
+      <span class="spinner-inline" *ngIf="saving()" aria-hidden="true"></span>
+      {{ saving() ? 'Suspending' : 'Suspend account' }}
+    </button>
+  </ng-container>
+</app-dialog>

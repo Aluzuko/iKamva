@@ -1,73 +1,80 @@
-<h1 class="page-title">Disputes &amp; Refunds</h1>
-<p class="page-subtitle mb-4">Review and resolve reported issues</p>
+<app-page-header title="Disputes & Refunds" subtitle="Issues raised by students and parents about lessons or charges"></app-page-header>
 
-<div class="tab-switch mb-4">
-  <button type="button" class="tab-btn" [class.active]="activeTab() === 'open'" (click)="setTab('open')">
-    Open
-  </button>
-  <button type="button" class="tab-btn" [class.active]="activeTab() === 'resolved'" (click)="setTab('resolved')">
-    Resolved
-  </button>
-</div>
+<div class="page-body">
+  <div class="loading-block" role="status" *ngIf="loading()">Loading disputes…</div>
 
-<div *ngIf="loading()" class="text-center text-muted py-5">Loading…</div>
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load disputes. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
 
-<div *ngIf="!loading()">
-  <div *ngIf="filtered.length; else noDisputes">
-    <div class="panel mb-3" *ngFor="let dispute of filtered">
-      <div class="d-flex justify-content-between align-items-start">
-        <div class="d-flex gap-3">
-          <app-avatar [name]="dispute.raisedByName" size="md"></app-avatar>
+  <ng-container *ngIf="!loading() && !failed()">
+    <div class="toolbar">
+      <div class="chips" role="group" aria-label="Filter by status">
+        <button type="button" class="chip" *ngFor="let f of filters" [attr.aria-pressed]="filter() === f.value" (click)="filter.set(f.value)">
+          {{ f.label }} <span class="chip-count">{{ countFor(f.value) }}</span>
+        </button>
+      </div>
+      <div class="search-box">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <label class="sr-only" for="dispute-search">Search disputes</label>
+        <input id="dispute-search" type="search" class="form-control" placeholder="Search name or issue" (input)="search.set($any($event.target).value)" />
+      </div>
+    </div>
+
+    <ul class="dispute-list" *ngIf="filtered().length; else none">
+      <li class="dispute" *ngFor="let d of filtered()">
+        <div class="dispute-head">
           <div>
-            <div class="fw-bold">{{ dispute.subject }}</div>
-            <div class="text-muted small mb-2">
-              Raised by {{ dispute.raisedByName }} · {{ dispute.createdAt | date: 'MMM d, y' }}
-            </div>
-            <p class="mb-0">{{ dispute.description }}</p>
+            <h2>{{ d.subject }}</h2>
+            <p class="meta">Raised by {{ d.raisedByName }} · {{ d.createdAt | date: 'MMM d, y' }}</p>
           </div>
+          <app-status-badge [text]="status(d.status).text" [variant]="status(d.status).variant"></app-status-badge>
         </div>
-        <app-status-badge [text]="statusLabel(dispute.status)" [variant]="statusVariant(dispute.status)"></app-status-badge>
-      </div>
+        <p class="desc">{{ d.description }}</p>
 
-      <div class="resolution-box mt-3" *ngIf="dispute.resolution">
-        <div class="detail-label mb-1">Resolution</div>
-        <p class="mb-0">{{ dispute.resolution }}</p>
-      </div>
+        <div class="outcome" *ngIf="d.resolution">
+          <span class="overline">Outcome{{ d.resolvedAt ? ' · ' + (d.resolvedAt | date: 'MMM d, y') : '' }}</span>
+          <p>{{ d.resolution }}</p>
+        </div>
 
-      <div class="mt-3" *ngIf="dispute.status === 'open'">
-        <div *ngIf="respondingId() !== dispute.disputeId">
-          <button type="button" class="btn btn-primary-role btn-sm" (click)="startRespond(dispute.disputeId)">
-            Respond
+        <div class="dispute-foot" *ngIf="d.status === 'open'">
+          <button type="button" class="btn btn-danger-outline" (click)="open(d, 'reject')">Reject</button>
+          <button type="button" class="btn btn-primary-role" (click)="open(d, 'resolve')">
+            <i class="bi bi-check2" aria-hidden="true"></i>Resolve
           </button>
         </div>
+      </li>
+    </ul>
 
-        <div class="response-panel" *ngIf="respondingId() === dispute.disputeId">
-          <label class="auth-form-label">Resolution notes</label>
-          <textarea
-            class="form-control mb-2"
-            rows="2"
-            [value]="resolutionText()"
-            (input)="resolutionText.set($any($event.target).value)"
-          ></textarea>
-          <div class="d-flex gap-2">
-            <button type="button" class="btn btn-primary-role btn-sm" (click)="resolve(dispute.disputeId)">
-              Mark Resolved
-            </button>
-            <button type="button" class="btn btn-outline-danger btn-sm" (click)="reject(dispute.disputeId)">
-              Reject Claim
-            </button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cancelRespond()">
-              Cancel
-            </button>
-          </div>
-        </div>
+    <ng-template #none>
+      <div class="empty-block">
+        <h3>{{ filter() === 'open' && !search() ? 'No open disputes' : disputes().length ? 'No disputes match' : 'No disputes yet' }}</h3>
+        <p>{{ filter() === 'open' && !search() ? 'Nothing needs your attention right now.' : 'Try a different filter or search.' }}</p>
       </div>
-    </div>
-  </div>
-  <ng-template #noDisputes>
-    <div class="panel text-center py-5">
-      <i class="bi bi-check-circle fs-1 text-muted"></i>
-      <p class="text-muted mt-2 mb-0">Nothing here.</p>
-    </div>
-  </ng-template>
+    </ng-template>
+  </ng-container>
 </div>
+
+<app-dialog
+  *ngIf="target() as t"
+  [title]="t.action === 'resolve' ? 'Resolve this dispute' : 'Reject this dispute'"
+  [description]="t.action === 'resolve'
+    ? 'Describe what you’ve done, for example a refund or a free replacement lesson. ' + t.dispute.raisedByName + ' will see this.'
+    : 'Explain why no action is being taken. ' + t.dispute.raisedByName + ' will see this.'"
+  (closed)="target.set(null)"
+>
+  <form id="dispute-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <label for="resolution" class="form-label">Outcome</label>
+    <textarea id="resolution" class="form-control" rows="4" formControlName="resolution" [class.is-invalid]="resolutionInvalid" aria-describedby="resolution-error"
+      [placeholder]="t.action === 'resolve' ? 'For example: refunded R250 to the parent’s card' : 'For example: the lesson took place as booked'"></textarea>
+    <div class="invalid-feedback" id="resolution-error" *ngIf="resolutionInvalid">Write an outcome of at least 5 characters.</div>
+  </form>
+  <ng-container dialog-actions>
+    <button type="button" class="btn btn-outline-ink" (click)="target.set(null)">Cancel</button>
+    <button type="submit" form="dispute-form" class="btn" [ngClass]="t.action === 'resolve' ? 'btn-primary-role' : 'btn-danger-solid'" [disabled]="saving()">
+      <span class="spinner-inline" *ngIf="saving()" aria-hidden="true"></span>
+      {{ saving() ? 'Saving' : t.action === 'resolve' ? 'Resolve dispute' : 'Reject dispute' }}
+    </button>
+  </ng-container>
+</app-dialog>
