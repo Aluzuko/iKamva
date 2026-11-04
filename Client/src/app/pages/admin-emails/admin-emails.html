@@ -1,0 +1,175 @@
+<app-page-header title="Email queue" [subtitle]="stats() ? stats()!.due + ' due · ' + stats()!.failed + ' failed · ' + stats()!.sent + ' sent' : null">
+  <button type="button" class="btn btn-outline-ink" (click)="openCompose()">
+    <i class="bi bi-pencil-square" aria-hidden="true"></i><span>Compose<span class="long"> letter</span></span>
+  </button>
+  <button type="button" class="btn btn-primary-role" [disabled]="processing()" (click)="process()">
+    <span class="spinner-inline" *ngIf="processing()" aria-hidden="true"></span>
+    <i class="bi bi-send" *ngIf="!processing()" aria-hidden="true"></i>
+    <span>{{ processing() ? 'Sending' : 'Send due' }}<span class="long" *ngIf="!processing()"> emails{{ stats()?.due ? ' (' + stats()!.due + ')' : '' }}</span></span>
+  </button>
+</app-page-header>
+
+<div class="page-body">
+  <div class="notice notice-info" *ngIf="stats() as s">
+    <i class="bi bi-info-circle" aria-hidden="true"></i>
+    <span>
+      {{ s.workerEnabled ? 'Emails are sent automatically in the background.' : 'Automatic sending is off. Emails go out when you press Send due emails.' }}
+      <ng-container *ngIf="s.transport.toLowerCase() === 'pickup'"> Delivery is set to <strong>Pickup</strong>, so emails are saved as files on the server instead of being delivered.</ng-container>
+    </span>
+  </div>
+
+  <div class="toolbar">
+    <div class="chips" role="group" aria-label="Filter by status">
+      <button type="button" class="chip" *ngFor="let f of filters()" [attr.aria-pressed]="filter() === f.value" (click)="setFilter(f.value)">
+        {{ f.label }} <span class="chip-count" *ngIf="f.count !== null">{{ f.count }}</span>
+      </button>
+    </div>
+    <div class="filters-right">
+      <label class="sr-only" for="email-category">Type</label>
+      <select id="email-category" class="form-select" (change)="setCategory($any($event.target).value)">
+        <option value="">All types</option>
+        <option *ngFor="let c of categories" [value]="c.value">{{ c.label }}</option>
+      </select>
+      <div class="search-box">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <label class="sr-only" for="email-search">Search emails</label>
+        <input id="email-search" type="search" class="form-control" placeholder="Recipient or subject" (input)="onSearch($any($event.target).value)" />
+      </div>
+    </div>
+  </div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load the queue. <a href="" (click)="$event.preventDefault(); loadList()">Try again</a></span>
+  </div>
+
+  <div class="loading-block" role="status" *ngIf="loading() && !items().length">Loading emails…</div>
+
+  <div class="data-table-wrap" *ngIf="items().length" [class.stale]="loading()">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Recipient</th>
+          <th scope="col">Subject</th>
+          <th scope="col">Type</th>
+          <th scope="col">Status</th>
+          <th scope="col">When</th>
+          <th scope="col"><span class="sr-only">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let e of items()">
+          <td><div class="cell-who"><div><strong>{{ e.toName || e.toEmail }}</strong><span *ngIf="e.toName">{{ e.toEmail }}</span></div></div></td>
+          <td class="subject">
+            {{ e.subject }}
+            <i class="bi bi-paperclip" *ngIf="e.attachmentCount" [attr.aria-label]="e.attachmentCount + ' attachments'"></i>
+            <span class="err" *ngIf="e.lastError && e.status !== 'sent'">{{ e.lastError }}</span>
+          </td>
+          <td class="text-nowrap">{{ categoryLabel[e.category] }}</td>
+          <td class="text-nowrap">
+            <app-status-badge [text]="e.status === 'pending' ? (e.attempts ? 'Retrying' : 'Waiting') : status(e.status).text" [variant]="e.status === 'pending' && e.attempts ? 'warning' : status(e.status).variant"></app-status-badge>
+            <span class="tries" *ngIf="e.attempts > 1 || (e.attempts && e.status !== 'sent')">{{ e.attempts }}/{{ e.maxAttempts }}</span>
+          </td>
+          <td class="text-nowrap muted">{{ whenLabel(e) }}</td>
+          <td class="text-end"><button type="button" class="btn btn-outline-ink btn-sm" (click)="open(e)">View<span class="sr-only"> email to {{ e.toEmail }}</span></button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <app-pager *ngIf="items().length" [total]="total()" [page]="page()" [pageSize]="pageSize" noun="emails" (pageChange)="goTo($event)"></app-pager>
+
+  <div class="empty-block" *ngIf="!loading() && !failed() && !items().length">
+    <h3>{{ filter() === 'all' && !search() && !category() ? 'No emails yet' : 'No emails match' }}</h3>
+    <p>{{ filter() === 'all' && !search() && !category() ? 'Invites, payment confirmations, invoices and letters appear here when they’re queued.' : 'Try a different filter or search.' }}</p>
+  </div>
+</div>
+
+<app-dialog *ngIf="detailLoading() || detail()" [title]="detail()?.summary?.subject || 'Email'" [description]="detail() ? 'To ' + (detail()!.summary.toName ? detail()!.summary.toName + ' <' + detail()!.summary.toEmail + '>' : detail()!.summary.toEmail) : null" [wide]="true" (closed)="closeDetail()">
+  <div class="loading-block" role="status" *ngIf="detailLoading()">Loading email…</div>
+  <ng-container *ngIf="detail() as d">
+    <div class="notice notice-error" *ngIf="d.summary.lastError && d.summary.status !== 'sent'">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>{{ d.summary.lastError }}</span>
+    </div>
+    <dl class="meta">
+      <div><dt>Status</dt><dd><app-status-badge [text]="status(d.summary.status).text" [variant]="status(d.summary.status).variant"></app-status-badge> · attempt {{ d.summary.attempts }} of {{ d.summary.maxAttempts }}</dd></div>
+      <div><dt>Type</dt><dd>{{ categoryLabel[d.summary.category] }} · {{ d.summary.priority }} priority</dd></div>
+      <div><dt>Queued</dt><dd>{{ d.summary.createdAt | date: 'd MMM y, HH:mm' }}</dd></div>
+      <div *ngIf="d.summary.sentAt"><dt>Sent</dt><dd>{{ d.summary.sentAt | date: 'd MMM y, HH:mm' }}</dd></div>
+      <div *ngIf="d.ccEmails"><dt>Cc</dt><dd>{{ d.ccEmails }}</dd></div>
+      <div *ngIf="d.replyToEmail"><dt>Reply to</dt><dd>{{ d.replyToEmail }}</dd></div>
+      <div *ngIf="d.relatedEntityType"><dt>About</dt><dd>{{ d.relatedEntityType }}</dd></div>
+    </dl>
+
+    <div class="atts" *ngIf="d.attachments.length">
+      <button type="button" class="att" *ngFor="let a of d.attachments" (click)="download(d, a.attachmentId, a.fileName)">
+        <i class="bi bi-paperclip" aria-hidden="true"></i>{{ a.fileName }} <span class="muted">{{ size(a.sizeBytes) }}</span>
+      </button>
+    </div>
+
+    <div class="tab-bar small" role="tablist" aria-label="Email body" *ngIf="d.textBody">
+      <button type="button" role="tab" [attr.aria-selected]="view() === 'html'" (click)="view.set('html')">Preview</button>
+      <button type="button" role="tab" [attr.aria-selected]="view() === 'text'" (click)="view.set('text')">Plain text</button>
+    </div>
+    <iframe *ngIf="view() === 'html'" class="preview" sandbox="" title="Email preview" [srcdoc]="preview()"></iframe>
+    <pre *ngIf="view() === 'text'" class="text-body">{{ d.textBody }}</pre>
+  </ng-container>
+  <ng-container dialog-actions>
+    <ng-container *ngIf="detail() as d">
+      <button type="button" class="btn btn-danger-outline" *ngIf="d.summary.status === 'pending'" [disabled]="acting()" (click)="cancel(d)">Cancel email</button>
+      <button type="button" class="btn btn-primary-role" *ngIf="(d.summary.status === 'failed' || d.summary.status === 'cancelled') && !d.bodyPurged" [disabled]="acting()" (click)="retry(d)">
+        <span class="spinner-inline" *ngIf="acting()" aria-hidden="true"></span>Send again
+      </button>
+    </ng-container>
+    <button type="button" class="btn btn-outline-ink" (click)="closeDetail()">Close</button>
+  </ng-container>
+</app-dialog>
+
+<app-dialog *ngIf="composeOpen()" title="Compose a letter" description="It’s sent with the iKamva layout. Replies come to your email address." [wide]="true" (closed)="composeOpen.set(false)">
+  <form id="compose-form" class="d-flex flex-column gap-3" [formGroup]="composeForm" (ngSubmit)="sendLetter()" novalidate>
+    <div class="notice notice-error" role="alert" *ngIf="composeError()">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i><span>{{ composeError() }}</span>
+    </div>
+    <div class="field-row">
+      <div>
+        <label for="c-to" class="form-label">To (email)</label>
+        <input id="c-to" type="email" class="form-control" formControlName="toEmail" [class.is-invalid]="invalid('toEmail')" autocomplete="off" />
+        <div class="invalid-feedback" *ngIf="invalid('toEmail')">Enter an email address like name&#64;example.com.</div>
+      </div>
+      <div>
+        <label for="c-name" class="form-label">Name <span class="text-muted fw-normal">(optional)</span></label>
+        <input id="c-name" class="form-control" formControlName="toName" autocomplete="off" />
+      </div>
+    </div>
+    <div>
+      <label for="c-subject" class="form-label">Subject</label>
+      <input id="c-subject" class="form-control" formControlName="subject" [class.is-invalid]="invalid('subject')" />
+      <div class="invalid-feedback" *ngIf="invalid('subject')">Enter a subject.</div>
+    </div>
+    <div>
+      <label for="c-message" class="form-label">Message</label>
+      <textarea id="c-message" class="form-control" rows="7" formControlName="message" [class.is-invalid]="invalid('message')" aria-describedby="c-message-help"></textarea>
+      <div class="form-text" id="c-message-help" [class.text-danger]="invalid('message')">Leave a blank line between paragraphs. A sign-off with your name is added for you.</div>
+    </div>
+    <div>
+      <span class="form-label d-block">Attachments <span class="text-muted fw-normal">(up to 10 files, 10 MB in total)</span></span>
+      <ul class="file-list" *ngIf="files().length">
+        <li *ngFor="let f of files(); let i = index">
+          <i class="bi bi-paperclip" aria-hidden="true"></i><span class="name">{{ f.name }}</span><span class="muted">{{ size(f.size) }}</span>
+          <button type="button" class="icon-x" (click)="removeFile(i)"><i class="bi bi-x-lg" aria-hidden="true"></i><span class="sr-only">Remove {{ f.name }}</span></button>
+        </li>
+      </ul>
+      <label class="btn btn-outline-ink btn-sm add-files">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>Add files
+        <input type="file" class="sr-only" multiple (change)="addFiles($event)" />
+      </label>
+      <span class="muted small ms-2" *ngIf="files().length">{{ size(filesSize()) }} total</span>
+      <div class="form-text text-danger" role="alert" *ngIf="fileError()">{{ fileError() }}</div>
+    </div>
+  </form>
+  <ng-container dialog-actions>
+    <button type="button" class="btn btn-outline-ink" (click)="composeOpen.set(false)">Cancel</button>
+    <button type="submit" form="compose-form" class="btn btn-primary-role" [disabled]="sendingLetter()">
+      <span class="spinner-inline" *ngIf="sendingLetter()" aria-hidden="true"></span>{{ sendingLetter() ? 'Queuing' : 'Queue letter' }}
+    </button>
+  </ng-container>
+</app-dialog>
