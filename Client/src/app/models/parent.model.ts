@@ -77,3 +77,22 @@ export interface PaymentsOverview {
 }
 
 export type LinkRelationship = 'parent' | 'guardian';
+
+export type PaymentStatus = 'pending' | 'complete' | 'failed' | 'cancelled';
+
+export interface PaymentRedirect {
+  attemptId: string;
+  processUrl: string;
+  fields: { name: string; value: string }[];
+}
+
+export interface PaymentAttempt {
+  attemptId: string;
+  invoiceId: string;
+  status: PaymentStatus;
+  invoiceStatus: InvoiceStatus;
+  amount: number;
+  description: string;
+  createdAt: string;
+  completedAt: string | null;
+}

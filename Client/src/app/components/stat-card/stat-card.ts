@@ -6,6 +6,8 @@ export interface StatTrend {
   label: string;
 }
 
+export type StatTone = 'slate' | 'teal' | 'yellow' | 'mint' | 'rose';
+
 @Component({
   selector: 'app-stat-card',
   standalone: true,
@@ -18,6 +20,8 @@ export class StatCard {
   @Input({ required: true }) value!: string;
   @Input() icon?: string;
   @Input() trend?: StatTrend;
+  @Input() hint?: string;
+  @Input() tone: StatTone = 'slate';
 
   get trendPositive(): boolean {
     return (this.trend?.percent ?? 0) >= 0;

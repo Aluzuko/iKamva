@@ -1,9 +1,11 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { PageHeader } from '../page-header/page-header';
 
 @Component({
   selector: 'app-coming-soon',
   standalone: true,
+  imports: [PageHeader],
   templateUrl: './coming-soon.html',
   styleUrl: './coming-soon.scss',
 })

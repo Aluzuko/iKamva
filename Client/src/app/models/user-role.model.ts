@@ -10,36 +10,37 @@ export interface RoleOption {
   label: string;
   description: string;
   icon: string;
-  gradientClass: string;
 }
 
 export const ROLE_OPTIONS: RoleOption[] = [
   {
     role: UserRole.Student,
     label: 'Student',
-    description: 'Browse tutors, book sessions, view recordings',
-    icon: 'bi-book-half',
-    gradientClass: 'role-gradient-student',
+    description: 'Book and attend lessons',
+    icon: 'bi-book',
   },
   {
     role: UserRole.Parent,
     label: 'Parent',
-    description: 'Monitor children, manage payments, link accounts',
-    icon: 'bi-people-fill',
-    gradientClass: 'role-gradient-parent',
+    description: 'Follow and pay for your children',
+    icon: 'bi-people',
   },
   {
     role: UserRole.Tutor,
     label: 'Tutor',
-    description: 'Manage schedule, track earnings, view feedback',
-    icon: 'bi-mortarboard-fill',
-    gradientClass: 'role-gradient-tutor',
+    description: 'Teach after verification',
+    icon: 'bi-mortarboard',
   },
   {
     role: UserRole.Admin,
     label: 'Admin',
-    description: 'Oversee platform, verify tutors, resolve disputes',
-    icon: 'bi-gear-fill',
-    gradientClass: 'role-gradient-admin',
+    description: 'Run the platform',
+    icon: 'bi-shield-check',
   },
 ];
+
+export const SIGNUP_ROLES: RoleOption[] = ROLE_OPTIONS.filter((r) => r.role !== UserRole.Admin);
+
+export function roleLabel(role: UserRole | null | undefined): string {
+  return ROLE_OPTIONS.find((r) => r.role === role)?.label ?? '';
+}

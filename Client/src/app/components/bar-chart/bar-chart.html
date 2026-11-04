@@ -1,9 +1,11 @@
-<div class="bar-chart">
-  <div class="bar-column" *ngFor="let point of points">
-    <div class="bar-value">{{ valuePrefix }}{{ point.value }}</div>
-    <div class="bar-track">
-      <div class="bar-fill" [style.height.%]="heightPercent(point.value)" [style.background]="color"></div>
+<figure class="chart" [attr.aria-label]="summary" role="img">
+  <div class="bars">
+    <div class="bar-col" *ngFor="let p of points; let last = last">
+      <span class="bar-value">{{ display(p.value) }}</span>
+      <div class="bar" [class.now]="highlightLast && last" [style.height.%]="height(p.value)"></div>
     </div>
-    <div class="bar-label">{{ point.label }}</div>
   </div>
-</div>
+  <div class="bar-labels" aria-hidden="true">
+    <span *ngFor="let p of points">{{ p.label }}</span>
+  </div>
+</figure>

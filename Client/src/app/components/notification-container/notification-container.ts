@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-import { NotificationService } from '../../services/notification.service';
+import { NotificationService, NotificationType } from '../../services/notification.service';
 
 @Component({
   selector: 'app-notification-container',
@@ -12,7 +12,7 @@ import { NotificationService } from '../../services/notification.service';
 export class NotificationContainer {
   constructor(public readonly notificationService: NotificationService) {}
 
-  iconFor(type: 'info' | 'success' | 'warning' | 'danger'): string {
+  iconFor(type: NotificationType): string {
     switch (type) {
       case 'success':
         return 'bi-check-circle';
@@ -26,6 +26,6 @@ export class NotificationContainer {
   }
 
   dismiss(id: string): void {
-    this.notificationService.markAsRead(id);
+    this.notificationService.dismissToast(id);
   }
 }

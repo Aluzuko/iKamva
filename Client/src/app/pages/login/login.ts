@@ -61,6 +61,8 @@ export class Login {
     switch (err.status) {
       case 401:
         return 'The email or password is incorrect.';
+      case 403:
+        return 'This account has been suspended. Contact support if you think this is a mistake.';
       case 429:
         return 'Too many sign-in attempts. Wait a minute and try again.';
       case 0:

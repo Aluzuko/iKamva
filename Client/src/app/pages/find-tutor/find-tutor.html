@@ -1,0 +1,83 @@
+<app-page-header title="Find a Tutor" subtitle="Verified tutors you can book online"></app-page-header>
+
+<div class="page-body">
+  <section class="filters panel" aria-label="Search and filters">
+    <div class="search-box grow">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <label class="sr-only" for="tutor-q">Search tutors</label>
+      <input id="tutor-q" type="search" class="form-control" placeholder="Search by name, subject or topic" [value]="filters().search ?? ''" (input)="onSearch($any($event.target).value)" />
+    </div>
+    <div class="selects">
+      <div>
+        <label class="sr-only" for="f-subject">Subject</label>
+        <select id="f-subject" class="form-select" [value]="filters().subjectId ?? ''" (change)="update({ subjectId: $any($event.target).value || null })">
+          <option value="">All subjects</option>
+          <option *ngFor="let s of subjects()" [value]="s.subjectId" [selected]="s.subjectId === filters().subjectId">{{ s.name }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="sr-only" for="f-price">Price</label>
+        <select id="f-price" class="form-select" (change)="update({ maxRate: num($any($event.target).value) })">
+          <option *ngFor="let o of priceOptions" [value]="o.value ?? ''" [selected]="o.value === (filters().maxRate ?? null)">{{ o.label }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="sr-only" for="f-rating">Rating</label>
+        <select id="f-rating" class="form-select" (change)="update({ minRating: num($any($event.target).value) })">
+          <option *ngFor="let o of ratingOptions" [value]="o.value ?? ''" [selected]="o.value === (filters().minRating ?? null)">{{ o.label }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="sr-only" for="f-sort">Sort by</label>
+        <select id="f-sort" class="form-select" (change)="update({ sort: $any($event.target).value })">
+          <option *ngFor="let o of sortOptions" [value]="o.value" [selected]="o.value === filters().sort">{{ o.label }}</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <div class="result-head" *ngIf="!failed()">
+    <span role="status">{{ loading() ? 'Searching…' : tutors().length + (tutors().length === 1 ? ' tutor' : ' tutors') }}</span>
+    <button type="button" class="link-quiet btn-reset" *ngIf="hasFilters" (click)="clear()">Clear filters</button>
+  </div>
+
+  <div class="notice notice-error" role="alert" *ngIf="failed()">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>We couldn't load tutors. <a href="" (click)="$event.preventDefault(); load()">Try again</a></span>
+  </div>
+
+  <div class="loading-block" role="status" *ngIf="loading() && !tutors().length">Finding tutors…</div>
+
+  <ul class="tutor-grid" *ngIf="tutors().length" [class.stale]="loading()">
+    <li *ngFor="let t of tutors()">
+      <a class="tutor-card" [routerLink]="['/student/tutors', t.tutorId]">
+        <div class="card-top">
+          <app-avatar [name]="t.fullName" size="lg"></app-avatar>
+          <div class="who">
+            <h2>{{ t.fullName }}</h2>
+            <span class="rating" *ngIf="t.averageRating !== null; else newTutor">
+              <app-star-rating [rating]="t.averageRating"></app-star-rating>
+              <strong>{{ t.averageRating | number: '1.1-1' }}</strong> ({{ t.reviewCount }})
+            </span>
+            <ng-template #newTutor><span class="rating muted">New tutor</span></ng-template>
+          </div>
+        </div>
+        <div class="subjects">
+          <span class="subject-pill" *ngFor="let s of t.subjects">{{ s.name }}</span>
+        </div>
+        <p class="headline">{{ t.headline || 'Verified tutor with ' + t.yearsExperience + ' years of experience.' }}</p>
+        <div class="card-foot">
+          <span class="rate"><strong>{{ t.hourlyRate | currency: 'ZAR' : 'R' : '1.0-0' }}</strong>/hr</span>
+          <span class="meta">{{ t.yearsExperience }} yrs · {{ t.completedLessons }} lessons</span>
+        </div>
+        <span class="no-hours" *ngIf="!t.weeklyHours"><i class="bi bi-calendar-x" aria-hidden="true"></i> No open hours right now</span>
+      </a>
+    </li>
+  </ul>
+
+  <div class="empty-block" *ngIf="!loading() && !failed() && !tutors().length">
+    <h3>No tutors match</h3>
+    <p>Try another subject, a higher price limit or a lower rating.</p>
+    <button type="button" class="btn btn-outline-ink mt-3" *ngIf="hasFilters" (click)="clear()">Clear filters</button>
+  </div>
+</div>

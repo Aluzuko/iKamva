@@ -505,6 +505,15 @@
     margin: 0;
   }
 
+  .m-tab .count-badge.dot {
+    min-width: 9px;
+    width: 9px;
+    height: 9px;
+    padding: 0;
+    top: 6px;
+    right: calc(50% - 16px);
+  }
+
   .more-sheet {
     position: fixed;
     left: 0;

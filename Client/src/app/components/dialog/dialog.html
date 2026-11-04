@@ -1,0 +1,19 @@
+<div class="dlg-backdrop" (click)="onBackdrop($event)">
+  <div class="dlg" [class.wide]="wide" role="dialog" aria-modal="true" [attr.aria-labelledby]="titleId" tabindex="-1" #panel>
+    <div class="dlg-head">
+      <div>
+        <h2 [id]="titleId">{{ title }}</h2>
+        <p *ngIf="description">{{ description }}</p>
+      </div>
+      <button type="button" class="dlg-close" aria-label="Close" (click)="close()">
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="dlg-body">
+      <ng-content></ng-content>
+    </div>
+    <div class="dlg-foot">
+      <ng-content select="[dialog-actions]"></ng-content>
+    </div>
+  </div>
+</div>

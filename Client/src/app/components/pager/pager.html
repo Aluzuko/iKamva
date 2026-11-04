@@ -1,0 +1,12 @@
+<nav class="pager" [attr.aria-label]="'Pages of ' + noun" *ngIf="total > 0">
+  <span class="pager-count">Showing {{ from }}–{{ to }} of {{ total }} {{ noun }}</span>
+  <div class="pager-buttons" *ngIf="pageCount > 1">
+    <button type="button" class="btn btn-outline-ink btn-sm" [disabled]="page <= 1" (click)="go(page - 1)">
+      <i class="bi bi-chevron-left" aria-hidden="true"></i>Previous
+    </button>
+    <span class="pager-page">Page {{ page }} of {{ pageCount }}</span>
+    <button type="button" class="btn btn-outline-ink btn-sm" [disabled]="page >= pageCount" (click)="go(page + 1)">
+      Next<i class="bi bi-chevron-right" aria-hidden="true"></i>
+    </button>
+  </div>
+</nav>

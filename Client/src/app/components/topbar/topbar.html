@@ -1,95 +1,63 @@
-<header class="app-topbar d-flex align-items-center justify-content-between">
-  <div class="d-flex align-items-center gap-2">
-    <button type="button" class="icon-btn" (click)="toggleSidebar.emit()" aria-label="Toggle sidebar">
-      <i class="bi bi-layout-sidebar"></i>
+<div class="header-tools">
+  <div class="popover-anchor" *ngIf="variant === 'full'">
+    <button
+      type="button"
+      class="icon-round"
+      [attr.aria-label]="'Notifications, ' + notificationService.unreadCount() + ' unread'"
+      [attr.aria-expanded]="open() === 'notifications'"
+      (click)="toggle('notifications')"
+    >
+      <i class="bi bi-bell" aria-hidden="true"></i>
+      <span class="count-badge" *ngIf="notificationService.unreadCount() > 0">{{ notificationService.unreadCount() }}</span>
     </button>
-  </div>
-
-  <div class="d-flex align-items-center gap-2">
-    <div class="dropdown">
-      <button
-        type="button"
-        class="icon-btn position-relative"
-        data-bs-toggle="dropdown"
-        aria-expanded="false"
-        aria-label="Notifications"
-      >
-        <i class="bi bi-bell"></i>
-        <span class="notif-dot" *ngIf="notificationService.unreadCount() > 0">{{
-          notificationService.unreadCount()
-        }}</span>
-      </button>
-      <div class="dropdown-menu dropdown-menu-end notif-menu p-2">
-        <div class="d-flex justify-content-between align-items-center px-2 py-1">
-          <span class="fw-semibold">Notifications</span>
-          <button
-            type="button"
-            class="btn btn-link btn-sm p-0"
-            (click)="notificationService.markAllAsRead()"
-          >
-            Mark all read
-          </button>
-        </div>
-
-        <div class="notif-list" *ngIf="notificationService.notifications().length; else noNotif">
-          <div
-            class="notif-item"
-            *ngFor="let n of notificationService.notifications()"
-            [class.unread]="!n.read"
-          >
-            <div
-              class="notif-icon"
-              [ngClass]="{
-                'bg-info': n.type === 'info',
-                'bg-success': n.type === 'success',
-                'bg-warning': n.type === 'warning',
-                'bg-danger': n.type === 'danger'
-              }"
-            >
-              <i
-                class="bi"
-                [ngClass]="{
-                  'bi-info-circle': n.type === 'info',
-                  'bi-check-circle': n.type === 'success',
-                  'bi-exclamation-triangle': n.type === 'warning',
-                  'bi-x-circle': n.type === 'danger'
-                }"
-              ></i>
-            </div>
-            <div class="notif-body">
-              <div class="notif-title">{{ n.title }}</div>
-              <div class="notif-message">{{ n.message }}</div>
-              <div class="notif-time">{{ n.time }}</div>
-            </div>
-          </div>
-        </div>
-        <ng-template #noNotif>
-          <div class="empty-state text-center py-4">
-            <i class="bi bi-bell-slash fs-3 text-muted"></i>
-            <p class="text-muted small mb-0 mt-2">You're all caught up</p>
-          </div>
-        </ng-template>
+    <div class="pop-panel" *ngIf="open() === 'notifications'">
+      <div class="pop-head">
+        <span>Notifications</span>
+        <button
+          type="button"
+          class="btn btn-link btn-sm p-0 link-quiet"
+          *ngIf="notificationService.unreadCount() > 0"
+          (click)="notificationService.markAllAsRead()"
+        >
+          Mark all read
+        </button>
       </div>
-    </div>
-
-    <div class="dropdown">
-      <button
-        type="button"
-        class="user-chip d-flex align-items-center gap-2"
-        data-bs-toggle="dropdown"
-        aria-expanded="false"
-      >
-        <span class="avatar">{{ role.charAt(0).toUpperCase() }}</span>
-        <span class="d-none d-md-inline text-capitalize fw-medium">{{ role }} User</span>
-        <i class="bi bi-chevron-down small"></i>
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end">
-        <li><a class="dropdown-item" href="/profile"><i class="bi bi-person me-2"></i>Profile</a></li>
-        <li><hr class="dropdown-divider" /></li>
-        <li>
-          <a class="dropdown-item" routerLink="/role-select"><i class="bi bi-box-arrow-left me-2"></i>Logout</a>
-        </li>
-      </ul>
+      <ng-container *ngIf="notificationService.notifications().length; else noNotes">
+        <div class="pop-item" *ngFor="let n of notificationService.notifications()" [class.unread]="!n.read">
+          <div>
+            <strong>{{ n.title }}</strong>
+            <div>{{ n.message }}</div>
+            <small>{{ n.time }}</small>
+          </div>
+        </div>
+      </ng-container>
+      <ng-template #noNotes>
+        <div class="pop-empty">You're all caught up.</div>
+      </ng-template>
     </div>
   </div>
-</header>
+
+  <div class="popover-anchor" [class.avatar-slot]="variant === 'full'">
+    <button
+      type="button"
+      class="avatar-trigger"
+      aria-label="Account menu"
+      [attr.aria-expanded]="open() === 'account'"
+      (click)="toggle('account')"
+    >
+      <app-avatar [name]="userName || role" [size]="variant === 'avatar' ? 'sm' : 'md'"></app-avatar>
+    </button>
+    <div class="pop-panel menu-panel" *ngIf="open() === 'account'">
+      <div class="menu-who">
+        <strong>{{ userName }}</strong>
+        <span>{{ session.user?.email }}</span>
+      </div>
+      <a [routerLink]="['/', role, 'profile']" (click)="open.set(null)">
+        <i class="bi bi-person" aria-hidden="true"></i>Profile
+      </a>
+      <button type="button" (click)="session.signOut()">
+        <i class="bi bi-box-arrow-right" aria-hidden="true"></i>Sign out
+      </button>
+    </div>
+  </div>
+</div>

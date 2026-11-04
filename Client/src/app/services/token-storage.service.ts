@@ -18,8 +18,12 @@ export class TokenStorageService {
   }
 
   get(): StoredSession | null {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as StoredSession) : null;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as StoredSession) : null;
+    } catch {
+      return null;
+    }
   }
 
   clear(): void {
@@ -39,6 +43,12 @@ export class TokenStorageService {
     if (!session) {
       return false;
     }
-    return new Date(session.accessTokenExpiresAt).getTime() > Date.now();
+    const until = session.refreshTokenExpiresAt ?? session.accessTokenExpiresAt;
+    return new Date(until).getTime() > Date.now();
+  }
+
+  get accessTokenExpiring(): boolean {
+    const session = this.get();
+    return !!session && new Date(session.accessTokenExpiresAt).getTime() - Date.now() < 30_000;
   }
 }

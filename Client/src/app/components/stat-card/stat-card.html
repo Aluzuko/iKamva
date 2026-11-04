@@ -1,11 +1,17 @@
-<div class="stat-card">
-  <div class="stat-top">
-    <span class="stat-label">{{ label }}</span>
-    <span class="stat-icon" *ngIf="icon"><i class="bi" [ngClass]="icon"></i></span>
+<div class="stat">
+  <div>
+    <div class="overline">{{ label }}</div>
+    <div class="stat-value">{{ value }}</div>
+    <div class="stat-hint" *ngIf="trend">
+      <span [class.up]="trendPositive" [class.down]="!trendPositive">
+        <i class="bi" [ngClass]="trendPositive ? 'bi-arrow-up' : 'bi-arrow-down'" aria-hidden="true"></i>
+        {{ trend.percent | number: '1.0-1' }}%
+      </span>
+      {{ trend.label }}
+    </div>
+    <div class="stat-hint" *ngIf="!trend && hint">{{ hint }}</div>
   </div>
-  <div class="stat-value">{{ value }}</div>
-  <div class="stat-trend" *ngIf="trend" [class.positive]="trendPositive" [class.negative]="!trendPositive">
-    <i class="bi" [ngClass]="trendPositive ? 'bi-arrow-up' : 'bi-arrow-down'"></i>
-    {{ trend.percent >= 0 ? '+' : '' }}{{ trend.percent }}% {{ trend.label }}
-  </div>
+  <span class="stat-icon" *ngIf="icon" [ngClass]="'tone-' + tone">
+    <i class="bi" [ngClass]="icon" aria-hidden="true"></i>
+  </span>
 </div>

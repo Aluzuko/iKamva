@@ -1,30 +1,35 @@
 .status-badge {
   display: inline-flex;
   align-items: center;
-  font-size: 0.75rem;
+  font-size: 0.71875rem;
   font-weight: 600;
-  padding: 0.25rem 0.65rem;
-  border-radius: 999px;
+  padding: 0.125rem 0.5rem;
+  border-radius: 6px;
   white-space: nowrap;
 }
 
 .variant-success {
-  background: #dcfce7;
-  color: #15803d;
+  background: #d5f2e3;
+  color: #1d7a4f;
 }
+
 .variant-warning {
-  background: #fef3c7;
-  color: #b45309;
+  background: #fbeccd;
+  color: #8a5a0e;
 }
+
 .variant-danger {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: #fbdfe5;
+  color: #b5304f;
 }
+
 .variant-info {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: #dfe5e8;
+  color: #33525f;
 }
+
 .variant-neutral {
-  background: var(--tl-bg-subtle);
-  color: var(--tl-text-muted);
+  background: var(--tl-surface-alt);
+  color: var(--tl-text);
+  border: 1px solid var(--tl-border);
 }

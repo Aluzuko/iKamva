@@ -1,0 +1,141 @@
+:host {
+  display: block;
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.search-box.grow {
+  max-width: none;
+  width: 100%;
+}
+
+.selects {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+.result-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  color: var(--tl-text-muted);
+}
+
+.btn-reset {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+}
+
+.tutor-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17.5rem, 1fr));
+  gap: 0.875rem;
+  transition: opacity 0.15s;
+}
+
+.tutor-grid.stale {
+  opacity: 0.55;
+}
+
+.tutor-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.125rem 1.25rem;
+  background: var(--tl-surface);
+  border: 1px solid var(--tl-border);
+  border-radius: var(--tl-radius-lg);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.tutor-card:hover {
+  border-color: var(--tl-text-muted);
+  transform: translateY(-1px);
+}
+
+.card-top {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.who {
+  min-width: 0;
+}
+
+.who h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 0.125rem;
+  color: var(--tl-text-strong);
+}
+
+.rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--tl-text-muted);
+}
+
+.rating strong {
+  color: var(--tl-text-strong);
+}
+
+.subjects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+
+.headline {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--tl-text);
+  flex: 1;
+}
+
+.card-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-top: 1px solid var(--tl-border);
+  padding-top: 0.75rem;
+}
+
+.rate strong {
+  font-size: 1.125rem;
+  color: var(--tl-text-strong);
+}
+
+.meta {
+  font-size: 0.78rem;
+  color: var(--tl-text-muted);
+}
+
+.no-hours {
+  font-size: 0.78rem;
+  color: #8a5a0e;
+}
+
+@media (max-width: 900px) {
+  .selects {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
