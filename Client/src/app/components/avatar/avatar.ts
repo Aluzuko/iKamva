@@ -12,10 +12,10 @@ export class Avatar {
   @Input({ required: true }) name!: string;
   @Input() size: 'sm' | 'md' | 'lg' = 'md';
 
-  private readonly palette = ['#2563eb', '#0d9488', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2'];
+  private readonly palette = ['#9a3a32', '#3a5a6a', '#5f4f86', '#2d7356', '#a8692a', '#4c5c37', '#7a3e5c'];
 
   get initials(): string {
-    const parts = this.name.trim().split(/\s+/);
+    const parts = this.name.replace(/^Dr\.?\s+/i, '').trim().split(/\s+/);
     const first = parts[0]?.[0] ?? '';
     const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
     return (first + last).toUpperCase();

@@ -18,6 +18,9 @@
         <li><i class="bi bi-check2" aria-hidden="true"></i>Tutors are verified before students can book them.</li>
       </ul>
     </div>
+
+    <p class="auth-foot" *ngIf="side === 'signin'">Your account's role decides what you can see after you sign in.</p>
+    <p class="auth-foot" *ngIf="side === 'signup'">Admin accounts are created by the iKamva team.</p>
   </aside>
 
   <main class="auth-main">

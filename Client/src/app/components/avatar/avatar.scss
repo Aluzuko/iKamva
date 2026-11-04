@@ -1,22 +1,29 @@
+:host {
+  display: inline-flex;
+  flex: none;
+}
+
 .avatar-circle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   color: #fff;
-  font-weight: 600;
-  font-size: 0.85rem;
-  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
 }
+
 .avatar-circle.sm {
-  width: 32px;
-  height: 32px;
-  font-size: 0.72rem;
+  width: 28px;
+  height: 28px;
+  font-size: 0.65rem;
 }
+
 .avatar-circle.lg {
-  width: 56px;
-  height: 56px;
-  font-size: 1.1rem;
+  width: 52px;
+  height: 52px;
+  font-size: 1rem;
 }

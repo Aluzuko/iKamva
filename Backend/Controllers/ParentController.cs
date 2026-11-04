@@ -44,13 +44,6 @@ public class ParentController : ControllerBase
         return Ok(await _parentService.GetPaymentsAsync(CurrentUserId(), ct));
     }
 
-    [HttpPost("payments/{invoiceId:guid}/pay")]
-    public async Task<IActionResult> PayInvoice(Guid invoiceId, CancellationToken ct)
-    {
-        var success = await _parentService.PayInvoiceAsync(CurrentUserId(), invoiceId, ct);
-        return success ? NoContent() : NotFound();
-    }
-
     [HttpPost("link-student/invite")]
     public async Task<IActionResult> InviteStudent(InviteStudentRequest request, CancellationToken ct)
     {

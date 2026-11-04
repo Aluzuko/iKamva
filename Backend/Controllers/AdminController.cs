@@ -18,7 +18,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("dashboard")]
-    public async Task<ActionResult<AdminDashboardResponse>> Dashboard(CancellationToken ct)
+    public async Task<ActionResult<AdminDashboardResponse>> GetDashboard(CancellationToken ct)
     {
         return Ok(await _adminService.GetDashboardAsync(ct));
     }

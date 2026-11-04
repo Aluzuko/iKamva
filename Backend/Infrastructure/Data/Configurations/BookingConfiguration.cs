@@ -14,6 +14,8 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.Property(b => b.PriceAmount).HasColumnType("numeric(10,2)");
         builder.Property(b => b.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(b => b.RecordingUrl).HasMaxLength(500);
+        builder.Property(b => b.CommissionPercent).HasColumnType("numeric(5,2)");
+        builder.Property(b => b.CancellationReason).HasMaxLength(500);
 
         builder.HasOne(b => b.Subject).WithMany().HasForeignKey(b => b.SubjectId);
 

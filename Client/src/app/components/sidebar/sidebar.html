@@ -1,36 +1,42 @@
-<aside class="app-sidebar" [class.collapsed]="collapsed">
-  <div class="sidebar-brand">
-    <a routerLink="/" class="d-flex align-items-center gap-2 text-decoration-none">
-      <span class="brand-icon"><i class="bi bi-journal-bookmark-fill"></i></span>
-      <span class="brand-text" *ngIf="!collapsed">iKamva</span>
+<aside class="app-sidebar" aria-label="Main navigation">
+  <div class="side-brand">
+    <a class="brand-link" [routerLink]="['/', role, 'dashboard']">
+      <span class="brand-mark"><i class="bi bi-book" aria-hidden="true"></i></span>
+      <span class="brand-name">iKamva</span>
     </a>
+    <span class="role-tag">{{ roleName }}</span>
   </div>
 
-  <div class="sidebar-role" *ngIf="!collapsed && roleOption">
-    <span class="role-pill">
-      <i class="bi" [ngClass]="roleOption.icon"></i>
-      {{ roleOption.label }}
-    </span>
+  <div class="side-user" *ngIf="userName">
+    <app-avatar [name]="userName" size="sm"></app-avatar>
+    <div>
+      <small>Signed in as</small>
+      <strong>{{ userName }}</strong>
+    </div>
   </div>
 
-  <nav class="sidebar-nav">
-    <a
-      *ngFor="let item of navItems"
-      [routerLink]="[item.route]"
-      routerLinkActive="active"
-      class="nav-link-item"
-      [title]="item.label"
-    >
-      <i class="bi" [ngClass]="item.icon"></i>
-      <span class="nav-label" *ngIf="!collapsed">{{ item.label }}</span>
-      <span class="nav-badge" *ngIf="!collapsed && item.badge">{{ item.badge }}</span>
-    </a>
+  <nav>
+    <ul class="side-nav">
+      <li *ngFor="let item of navItems">
+        <a
+          class="side-link"
+          [routerLink]="[item.route]"
+          routerLinkActive="active"
+          ariaCurrentWhenActive="page"
+          [title]="item.label"
+        >
+          <i class="bi" [ngClass]="item.icon" aria-hidden="true"></i>
+          <span class="label">{{ item.label }}</span>
+          <span class="count-badge" *ngIf="badgeFor(item) as badge">{{ badge }}<span class="sr-only"> unread</span></span>
+        </a>
+      </li>
+    </ul>
   </nav>
 
-  <div class="sidebar-footer">
-    <a routerLink="/role-select" class="nav-link-item" title="Logout">
-      <i class="bi bi-box-arrow-left"></i>
-      <span class="nav-label" *ngIf="!collapsed">Logout</span>
-    </a>
+  <div class="side-foot">
+    <button type="button" class="side-link" title="Sign out" (click)="session.signOut()">
+      <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+      <span class="label">Sign out</span>
+    </button>
   </div>
 </aside>
